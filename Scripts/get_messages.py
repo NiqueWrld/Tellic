@@ -17,7 +17,9 @@ import os
 import re
 import subprocess
 import time
+import hashlib
 import uiautomator2 as u2
+from datetime import datetime
 
 DEVICE        = "RF8Y10AWLYY"
 WA_PKG        = "com.whatsapp.w4b"
@@ -25,6 +27,10 @@ CONTACTS_FILE = "contacts.json"
 MESSAGES_FILE = "messages.json"
 TXT_DIR       = "Exported Chats"
 CHAT_LIST_ID  = f"{WA_PKG}:id/conversations_row_contact_name"
+
+# Output schema identifiers (adjust to match your production IDs)
+BUSINESS_ID    = "1026a370-4102-459f-956b-f09809735835"
+RECEPTIONIST_ID = "jSI05Mk0PHA7VzjUqgLE"
 
 # Matches: [DD/MM/YYYY, HH:MM:SS] Sender: text
 MSG_RE = re.compile(
@@ -252,6 +258,147 @@ def parse_txt(path):
     return messages
 
 
+def make_timestamp_iso(date_str, time_str):
+    """Best-effort parser for WhatsApp export date/time into ISO format (UTC-style suffix)."""
+    clean_time = (time_str or "").replace("\u202f", " ").replace("\xa0", " ").strip().lower()
+    clean_time = clean_time.replace("a.m.", "am").replace("p.m.", "pm").replace("a.m", "am").replace("p.m", "pm")
+
+    fmts = [
+        ("%Y/%m/%d", "%I:%M %p"),
+        ("%Y/%m/%d", "%I:%M:%S %p"),
+        ("%d/%m/%Y", "%H:%M:%S"),
+        ("%d/%m/%Y", "%H:%M"),
+    ]
+    for df, tf in fmts:
+        try:
+            dt = datetime.strptime(f"{date_str} {clean_time}", f"{df} {tf}")
+            return dt.strftime("%Y-%m-%dT%H:%M:%S.000Z")
+        except ValueError:
+            continue
+    return datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000Z")
+
+
+def empty_schema_db():
+    return {
+        "bookings": {},
+        "businesses": {},
+        "clients": {},
+        "conversations": {},
+        "errorLogs": {},
+        "feedback": {},
+        "messages": {},
+        "receptionists": {},
+        "subscriptions": {}
+    }
+
+
+def ensure_schema_db(db):
+    if not isinstance(db, dict):
+        return empty_schema_db()
+    # Legacy format: top-level keys are phone numbers.
+    schema_keys = {"bookings", "businesses", "clients", "conversations", "errorLogs", "feedback", "messages", "receptionists", "subscriptions"}
+    if any(k in db for k in schema_keys):
+        merged = empty_schema_db()
+        merged.update(db)
+        for k in schema_keys:
+            if k not in merged or not isinstance(merged[k], dict):
+                merged[k] = {}
+        return merged
+
+    # Convert old structure into the new one.
+    converted = empty_schema_db()
+    for phone_key, payload in db.items():
+        if not isinstance(payload, dict):
+            continue
+        name = payload.get("name") or "Unknown"
+        numbers = payload.get("numbers") or [phone_key]
+        phone = re.sub(r"\D", "", numbers[0] if numbers else phone_key)
+        client_id = f"cl_{phone}"
+        conv_id = f"{RECEPTIONIST_ID}_{phone}"
+
+        converted["clients"][client_id] = {
+            "phoneNumber": phone,
+            "fullName": name,
+            "createdAt": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000Z"),
+            "updatedAt": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000Z")
+        }
+
+        converted["conversations"][conv_id] = {
+            "businessId": BUSINESS_ID,
+            "receptionistId": RECEPTIONIST_ID,
+            "phoneNumber": phone,
+            "contactName": name,
+            "clientId": client_id,
+            "createdAt": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000Z"),
+            "updatedAt": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000Z")
+        }
+
+        for idx, m in enumerate(payload.get("messages", [])):
+            digest = hashlib.sha1(f"{conv_id}|{idx}|{m.get('date','')}|{m.get('time','')}|{m.get('sender','')}|{m.get('text','')}".encode("utf-8", errors="ignore")).hexdigest()[:20]
+            ts = make_timestamp_iso(m.get("date", ""), m.get("time", ""))
+            converted["messages"][digest] = {
+                "conversationId": conv_id,
+                "businessId": BUSINESS_ID,
+                "receptionistId": RECEPTIONIST_ID,
+                "clientId": client_id,
+                "direction": "inbound" if (m.get("sender") == name or m.get("sender") == "system") else "outbound",
+                "content": m.get("text", ""),
+                "timestamp": ts
+            }
+    return converted
+
+
+def upsert_contact_messages(db, contact_name, numbers, msgs):
+    phone = re.sub(r"\D", "", numbers[0]) if numbers else ""
+    client_id = f"cl_{phone}"
+    conv_id = f"{RECEPTIONIST_ID}_{phone}"
+    now_iso = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000Z")
+
+    db["clients"][client_id] = {
+        "phoneNumber": phone,
+        "fullName": contact_name,
+        "updatedAt": now_iso,
+        "createdAt": db["clients"].get(client_id, {}).get("createdAt", now_iso)
+    }
+
+    conversation = db["conversations"].get(conv_id, {})
+    conversation.update({
+        "businessId": BUSINESS_ID,
+        "receptionistId": RECEPTIONIST_ID,
+        "phoneNumber": phone,
+        "contactName": contact_name,
+        "clientId": client_id,
+        "createdAt": conversation.get("createdAt", now_iso),
+        "updatedAt": now_iso,
+    })
+
+    last_ts = None
+    last_text = ""
+    for idx, m in enumerate(msgs):
+        ts = make_timestamp_iso(m.get("date", ""), m.get("time", ""))
+        sender = (m.get("sender") or "").strip()
+        direction = "inbound" if (sender == contact_name or sender == "system") else "outbound"
+        content = m.get("text", "")
+
+        msg_hash = hashlib.sha1(f"{conv_id}|{idx}|{m.get('date','')}|{m.get('time','')}|{sender}|{content}".encode("utf-8", errors="ignore")).hexdigest()[:20]
+        db["messages"][msg_hash] = {
+            "conversationId": conv_id,
+            "businessId": BUSINESS_ID,
+            "receptionistId": RECEPTIONIST_ID,
+            "clientId": client_id,
+            "direction": direction,
+            "content": content,
+            "timestamp": ts
+        }
+        last_ts = ts
+        last_text = content
+
+    if last_ts:
+        conversation["lastMessageAt"] = last_ts
+        conversation["lastMessage"] = last_text
+    db["conversations"][conv_id] = conversation
+
+
 # ── Main ───────────────────────────────────────────────────────────────────────
 
 def load_json(path, default):
@@ -270,7 +417,8 @@ def main():
         print(f"No contacts found in {CONTACTS_FILE}. Run get_contacts.py first.")
         return
 
-    messages_db = load_json(MESSAGES_FILE, {})
+    raw_db = load_json(MESSAGES_FILE, {})
+    messages_db = ensure_schema_db(raw_db)
 
     print(f"Loaded {len(contacts)} contacts.")
     print("Connecting to device...")
@@ -310,15 +458,7 @@ def main():
         msgs = parse_txt(txt_path)
         print(f"  Parsed {len(msgs)} messages.")
 
-        # Use first number as key (normalised)
-        key = re.sub(r"\D", "", contact["numbers"][0]) if contact["numbers"] else name
-
-        messages_db[key] = {
-            "name":     name,
-            "numbers":  contact["numbers"],
-            "got_all":  True,
-            "messages": msgs
-        }
+        upsert_contact_messages(messages_db, name, contact["numbers"], msgs)
 
         # Mark contact done
         contact["got_all"] = True
