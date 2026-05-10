@@ -1,0 +1,16 @@
+# Secrets
+.env
+google_token.json
+
+# Ignore all WhatsApp Business media (large files)
+WhatsApp Business/WhatsApp Audio/
+WhatsApp Business/WhatsApp Images/
+WhatsApp Business/WhatsApp Video/
+WhatsApp Business/WhatsApp Documents/
+WhatsApp Business/WhatsApp Voice Notes/
+WhatsApp Business/WhatsApp Stickers/
+WhatsApp Business/WhatsApp Animated Gifs/
+WhatsApp Business/.Statuses/
+
+# Keep only databases (chat backups)
+!WhatsApp Business/Databases/
