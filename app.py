@@ -59,6 +59,9 @@ class ScriptRunnerApp:
 		self.root.geometry("900x560")
 
 		self.log_queue: queue.Queue[str] = queue.Queue()
+		self.current_process: subprocess.Popen[str] | None = None
+		self.stop_requested = False
+		self.process_lock = threading.Lock()
 		self.running = False
 
 		self._build_ui()
@@ -87,6 +90,9 @@ class ScriptRunnerApp:
 
 		self.run_all_btn = ttk.Button(button_row, text="Run All", command=self._run_all)
 		self.run_all_btn.pack(side=tk.LEFT, padx=(0, 8))
+
+		self.stop_btn = ttk.Button(button_row, text="Stop", command=self._stop_current_process)
+		self.stop_btn.pack(side=tk.LEFT, padx=(0, 8))
 
 		self.copy_json_btn = ttk.Button(button_row, text="Copy JSON", command=self._copy_json)
 		self.copy_json_btn.pack(side=tk.LEFT, padx=(0, 8))
@@ -119,6 +125,7 @@ class ScriptRunnerApp:
 		self.run_contacts_btn.configure(state=state)
 		self.run_messages_btn.configure(state=state)
 		self.run_all_btn.configure(state=state)
+		self.stop_btn.configure(state=tk.NORMAL if running else tk.DISABLED)
 		self.copy_json_btn.configure(state=state)
 
 	def _clear_log(self) -> None:
@@ -137,16 +144,41 @@ class ScriptRunnerApp:
 	def _run_single(self, script_path: Path) -> None:
 		if self.running:
 			return
+		self.stop_requested = False
 		threading.Thread(target=self._execute_scripts, args=([script_path],), daemon=True).start()
 
 	def _run_all(self) -> None:
 		if self.running:
 			return
+		self.stop_requested = False
 		threading.Thread(
 			target=self._execute_scripts,
 			args=([CONTACTS_SCRIPT, MESSAGES_SCRIPT],),
 			daemon=True,
 		).start()
+
+	def _stop_current_process(self) -> None:
+		self.stop_requested = True
+		with self.process_lock:
+			process = self.current_process
+
+		if process is None:
+			self._log("No active process to stop.")
+			self.status_var.set("Idle")
+			return
+
+		self._log(f"Stopping PID {process.pid}...")
+		try:
+			if os.name == "nt":
+				subprocess.run(["taskkill", "/PID", str(process.pid), "/T", "/F"], check=False, capture_output=True, text=True)
+			else:
+				process.terminate()
+		except Exception as exc:
+			self._log(f"ERROR stopping process: {exc}")
+			return
+
+		self._log("Stop signal sent.")
+		self.status_var.set("Stopping...")
 
 	def _copy_json(self) -> None:
 		json_path: Path | None = None
@@ -177,6 +209,10 @@ class ScriptRunnerApp:
 
 		try:
 			for script in scripts:
+				if self.stop_requested:
+					self._log("Run stopped by user.")
+					break
+
 				if not script.exists():
 					self._log(f"ERROR: Missing script: {script}")
 					break
@@ -196,12 +232,23 @@ class ScriptRunnerApp:
 					errors="replace",
 				)
 
+				with self.process_lock:
+					self.current_process = process
+
 				assert process.stdout is not None
 				for line in process.stdout:
+					if self.stop_requested:
+						break
 					self._log(line.rstrip())
 
-				exit_code = process.wait()
+				exit_code = process.wait() if not self.stop_requested else process.poll()
+				if exit_code is None:
+					exit_code = -1
 				self._log(f"Finished: {script.name} (exit code {exit_code})")
+
+				if self.stop_requested:
+					self._log("Stopped by user.")
+					break
 
 				if exit_code != 0:
 					self._log("Stopped due to script error.")
@@ -212,6 +259,8 @@ class ScriptRunnerApp:
 			self._log(f"Unexpected error: {exc}")
 			self.root.after(0, lambda: self.status_var.set("Error"))
 		finally:
+			with self.process_lock:
+				self.current_process = None
 			self.root.after(0, lambda: self._set_running(False))
 
 
