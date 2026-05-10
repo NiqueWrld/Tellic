@@ -45,6 +45,14 @@ def list_device_txt_files():
     return set(f.strip() for f in r.stdout.splitlines() if f.strip())
 
 
+def ui_exists(sel):
+    """Safe exists check for flaky chooser UI calls on some Samsung devices."""
+    try:
+        return sel.exists
+    except Exception:
+        return False
+
+
 # ── Chat export via UI ─────────────────────────────────────────────────────────
 
 def open_chat_by_number(number):
@@ -67,7 +75,7 @@ def export_chat(d, contact_name):
     """Export the currently open chat. Returns path to the pulled .txt or None."""
     before = list_device_txt_files()
 
-    if not d(description="More options").exists:
+    if not ui_exists(d(description="More options")):
         return None
 
     d(description="More options").click()
@@ -92,43 +100,54 @@ def export_chat(d, contact_name):
         without.click()
     time.sleep(2.5)
 
-    # The Samsung share sheet app row shows 5 apps (Quick Share/Drive/Outlook/WhatsApp/Gmail).
-    # "My Files" is further right — scroll the apps row left to reveal it.
+    # Tap "WA Saver" in the share sheet app row.
+    # Samsung's ChooserActivity only shows ranked apps — scroll far right,
+    # then look for "WA Saver" or a "More apps" / see-all button.
     screen = d.info
     h = screen.get("displayHeight", 2340)
     w = screen.get("displayWidth", 1080)
-    # App icons row sits at roughly bottom 15% of screen
-    app_row_y = int(h * 0.87)
+    app_row_y = int(h * 0.90)   # bottom ~10% of screen where app icons sit
 
     found = False
-    for attempt in range(8):
-        for label in ["My Files", "File Manager", "Files", "Save to Files"]:
-            if d(text=label).exists:
-                d(text=label).click()
-                found = True
-                break
-            if d(description=label).exists:
-                d(description=label).click()
+    for i in range(30):
+        # Check for WA Saver (text or description)
+        for label in ["WA Saver", "WaSaver"]:
+            if ui_exists(d(text=label)) or ui_exists(d(description=label)):
+                (d(text=label) if ui_exists(d(text=label)) else d(description=label)).click()
                 found = True
                 break
         if found:
             break
-        # Swipe left (scroll right) in the apps row
-        d.swipe(int(w * 0.8), app_row_y, int(w * 0.2), app_row_y, duration=0.25)
-        time.sleep(0.4)
+        # Check for a "More" / "See all" / "More apps" button
+        for more_label in ["More", "See all", "More apps", "More options"]:
+            if ui_exists(d(text=more_label)):
+                d(text=more_label).click()
+                time.sleep(1.0)
+                # Now in expanded list — look for WA Saver
+                if ui_exists(d(text="WA Saver")):
+                    d(text="WA Saver").click()
+                    found = True
+                else:
+                    d.press("back")
+                break
+        if found:
+            break
+        # Scroll the app row left to reveal more apps
+        d.swipe(int(w * 0.85), app_row_y, int(w * 0.15), app_row_y, duration=0.2)
+        time.sleep(0.3)
 
     if not found:
-        print("  [DEBUG] My Files not found after scrolling — bailing")
+        # Dump what's on screen now for diagnosis
+        print("  [DEBUG] Share sheet contents after scrolling:")
+        for el in d():
+            info = el.info
+            txt = info.get("text","") or info.get("contentDescription","")
+            if txt:
+                print(f"    text={info.get('text','')!r}  desc={info.get('contentDescription','')!r}")
         d.press("back"); d.press("back")
         return None
 
-    time.sleep(1.5)
-
-    for confirm in ["Save", "Done", "OK"]:
-        if d(text=confirm).exists:
-            d(text=confirm).click()
-            time.sleep(0.5)
-            break
+    time.sleep(2.0)  # WA Saver saves and finishes instantly
 
     # Pull new file
     os.makedirs(TXT_DIR, exist_ok=True)
