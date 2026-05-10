@@ -1,0 +1,14 @@
+{
+  "java.project.sourcePaths": [
+    "WaSaver/src",
+    "WaSaver/gen"
+  ],
+  "java.project.referencedLibraries": {
+    "include": [
+      "C:/Users/Admin/AppData/Local/Android/Sdk/platforms/android-35/android.jar",
+      "${env:LOCALAPPDATA}/Android/Sdk/platforms/android-35/android.jar"
+    ]
+  },
+  "java.errors.incompleteClasspath.severity": "ignore",
+  "java.validate.enable": false
+}

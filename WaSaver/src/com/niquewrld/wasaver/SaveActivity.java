@@ -3,6 +3,7 @@ package com.niquewrld.wasaver;
 import android.app.Activity;
 import android.content.Intent;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.content.res.AssetFileDescriptor;
 import java.io.File;
@@ -27,7 +28,7 @@ public class SaveActivity extends Activity {
         try {
             Intent intent = getIntent();
             if (intent != null && Intent.ACTION_SEND.equals(intent.getAction())) {
-                Uri fileUri = intent.getParcelableExtra(Intent.EXTRA_STREAM);
+                Uri fileUri = getParcelableExtraCompat(intent, Intent.EXTRA_STREAM, Uri.class);
                 if (fileUri != null && saveUri(fileUri)) {
                     finish();
                     return;
@@ -43,6 +44,15 @@ public class SaveActivity extends Activity {
         }
 
         finish();
+    }
+
+    private static <T> T getParcelableExtraCompat(Intent intent, String key, Class<T> type) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            return intent.getParcelableExtra(key, type);
+        }
+        @SuppressWarnings("deprecation")
+        T value = intent.getParcelableExtra(key);
+        return value;
     }
 
     private boolean saveUri(Uri uri) throws Exception {

@@ -69,6 +69,39 @@ Output:
 
 1. `WaSaver/apk/wasaver.apk`
 
+### 6. Record a Demo (scrcpy)
+
+Use scrcpy to record a "how it works" walkthrough from the Android device.
+
+1. Verify device connection:
+
+```bash
+adb devices
+```
+
+2. Create output folder:
+
+```powershell
+New-Item -ItemType Directory -Force .\demo | Out-Null
+```
+
+3. Record a 2-minute demo (replace serial if needed):
+
+```bash
+scrcpy -s RF8Y10AWLYY --no-audio --max-size 1280 --max-fps 30 --time-limit 120 --record demo/how-it-works.mp4
+```
+
+4. Suggested flow to record:
+1. Open `app.py` or `WhatsAppExportRunner.exe`
+2. Click Run Contacts
+3. Click Run Messages
+4. Click Copy JSON
+5. Show generated `messages.json`
+
+Output file:
+
+1. `demo/how-it-works.mp4`
+
 ## For Contributors
 
 ### Project Structure
