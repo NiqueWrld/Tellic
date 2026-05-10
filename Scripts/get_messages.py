@@ -31,6 +31,16 @@ MSG_RE = re.compile(
     r"^\[(\d{1,2}/\d{1,2}/\d{4}),\s*(\d{1,2}:\d{2}:\d{2})\]\s*([^:]+):\s*(.*)$"
 )
 
+# Matches: YYYY/MM/DD, 5:57 pm - Sender: text  (also DD/MM/YYYY variants)
+MSG_RE_ALT = re.compile(
+    r"^(\d{1,4}/\d{1,2}/\d{1,4}),\s*(\d{1,2}:\d{2}(?::\d{2})?\s*[apAP]\.?m\.?)\s*-\s*([^:]+?):\s*(.*)$"
+)
+
+# Matches system lines without sender: YYYY/MM/DD, 10:34 pm - Messages and calls...
+SYS_RE_ALT = re.compile(
+    r"^(\d{1,4}/\d{1,2}/\d{1,4}),\s*(\d{1,2}:\d{2}(?::\d{2})?\s*[apAP]\.?m\.?)\s*-\s*(.*)$"
+)
+
 
 # ── ADB helpers ────────────────────────────────────────────────────────────────
 
@@ -41,8 +51,20 @@ def adb(*args):
     )
 
 def list_device_txt_files():
-    r = adb("shell", "find /sdcard/Download /sdcard/Documents -name 'WhatsApp*.txt' 2>/dev/null")
+    r = adb(
+        "shell",
+        "find /sdcard/Download /sdcard/Documents "
+        "\\( -name 'WhatsApp*.txt' -o -name 'wa_export_*.txt' \\) 2>/dev/null"
+    )
     return set(f.strip() for f in r.stdout.splitlines() if f.strip())
+
+
+def current_focus_line():
+    r = adb("shell", "dumpsys", "window")
+    for line in r.stdout.splitlines():
+        if "mCurrentFocus" in line:
+            return line.strip()
+    return "<no mCurrentFocus found>"
 
 
 def ui_exists(sel):
@@ -62,20 +84,25 @@ def open_chat_by_number(number):
     """
     # Normalise: strip everything except digits
     num = re.sub(r"\D", "", number)
-    adb("shell", "am", "start",
+    start = adb("shell", "am", "start",
         "-a", "android.intent.action.VIEW",
         "-d", f"https://wa.me/{num}",
         WA_PKG)
+    if start.returncode != 0:
+        print(f"  [DEBUG] am start failed: {start.stderr.strip()}")
     time.sleep(2.5)
-    # Confirm Conversation activity is now focused
-    result = adb("shell", "dumpsys", "window", "|", "grep", "mCurrentFocus")
-    return "Conversation" in result.stdout
+    focus = current_focus_line()
+    print(f"  [DEBUG] focus after wa.me: {focus}")
+    # Conversation and Composer are valid chat views; ContactPicker means no active chat opened.
+    return ("Conversation" in focus) or ("ConversationCompose" in focus)
 
 def export_chat(d, contact_name):
     """Export the currently open chat. Returns path to the pulled .txt or None."""
     before = list_device_txt_files()
+    print(f"  [DEBUG] txt files before export: {len(before)}")
 
     if not ui_exists(d(description="More options")):
+        print("  [DEBUG] More options button not found")
         return None
 
     d(description="More options").click()
@@ -83,6 +110,7 @@ def export_chat(d, contact_name):
 
     more = d(text="More") or d(text="more")
     if not more.wait(timeout=3):
+        print("  [DEBUG] 'More' entry not found in menu")
         d.press("back")
         return None
     more.click()
@@ -90,6 +118,7 @@ def export_chat(d, contact_name):
 
     export_btn = d(text="Export chat")
     if not export_btn.wait(timeout=3):
+        print("  [DEBUG] 'Export chat' entry not found")
         d.press("back"); d.press("back")
         return None
     export_btn.click()
@@ -98,6 +127,8 @@ def export_chat(d, contact_name):
     without = d(text="Without media")
     if without.wait(timeout=4):
         without.click()
+    else:
+        print("  [DEBUG] 'Without media' chooser not found")
     time.sleep(2.5)
 
     # Tap "WA Saver" in the share sheet app row.
@@ -153,7 +184,10 @@ def export_chat(d, contact_name):
     os.makedirs(TXT_DIR, exist_ok=True)
     after = list_device_txt_files()
     new_files = after - before
+    print(f"  [DEBUG] txt files after export: {len(after)}")
+    print(f"  [DEBUG] new txt files detected: {len(new_files)}")
     for remote in new_files:
+        print(f"  [DEBUG] pulling: {remote}")
         fname = os.path.basename(remote)
         dest  = os.path.join(TXT_DIR, fname)
         adb("pull", remote, dest)
@@ -182,6 +216,32 @@ def parse_txt(path):
                         "sender": m.group(3).strip(),
                         "text":   m.group(4)
                     }
+                    continue
+
+                m2 = MSG_RE_ALT.match(line)
+                if m2:
+                    if current:
+                        messages.append(current)
+                    current = {
+                        "date":   m2.group(1),
+                        "time":   m2.group(2),
+                        "sender": m2.group(3).strip(),
+                        "text":   m2.group(4)
+                    }
+                    continue
+
+                ms = SYS_RE_ALT.match(line)
+                if ms:
+                    if current:
+                        messages.append(current)
+                    current = {
+                        "date":   ms.group(1),
+                        "time":   ms.group(2),
+                        "sender": "system",
+                        "text":   ms.group(3)
+                    }
+                    continue
+
                 elif current:
                     # Continuation line
                     current["text"] += "\n" + line
