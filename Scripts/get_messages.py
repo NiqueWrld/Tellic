@@ -90,25 +90,43 @@ def export_chat(d, contact_name):
     without = d(text="Without media")
     if without.wait(timeout=4):
         without.click()
-    time.sleep(1.2)
+    time.sleep(2.5)
 
-    # Share sheet — tap Save to Files / Files / Downloads
-    saved = False
-    for label in ["Save to Files", "Files", "Save", "Downloads"]:
-        btn = d(text=label)
-        if btn.exists:
-            btn.click()
-            saved = True
-            time.sleep(1.2)
+    # The Samsung share sheet app row shows 5 apps (Quick Share/Drive/Outlook/WhatsApp/Gmail).
+    # "My Files" is further right — scroll the apps row left to reveal it.
+    screen = d.info
+    h = screen.get("displayHeight", 2340)
+    w = screen.get("displayWidth", 1080)
+    # App icons row sits at roughly bottom 15% of screen
+    app_row_y = int(h * 0.87)
+
+    found = False
+    for attempt in range(8):
+        for label in ["My Files", "File Manager", "Files", "Save to Files"]:
+            if d(text=label).exists:
+                d(text=label).click()
+                found = True
+                break
+            if d(description=label).exists:
+                d(description=label).click()
+                found = True
+                break
+        if found:
             break
-    if not saved and d(description="Files").exists:
-        d(description="Files").click()
-        time.sleep(1.2)
+        # Swipe left (scroll right) in the apps row
+        d.swipe(int(w * 0.8), app_row_y, int(w * 0.2), app_row_y, duration=0.25)
+        time.sleep(0.4)
+
+    if not found:
+        print("  [DEBUG] My Files not found after scrolling — bailing")
+        d.press("back"); d.press("back")
+        return None
+
+    time.sleep(1.5)
 
     for confirm in ["Save", "Done", "OK"]:
-        btn = d(text=confirm)
-        if btn.exists:
-            btn.click()
+        if d(text=confirm).exists:
+            d(text=confirm).click()
             time.sleep(0.5)
             break
 
