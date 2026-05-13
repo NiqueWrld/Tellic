@@ -9,6 +9,13 @@ from pathlib import Path
 from tkinter import ttk
 
 
+# This desktop app is a thin orchestrator around two scripts:
+# 1) get_contacts.py -> builds contacts.json from the phone
+# 2) get_messages.py -> exports/parses chats into messages.json
+#
+# The GUI intentionally keeps the workflow simple for non-technical users.
+
+
 def _resolve_base_dir() -> Path:
 	# In a frozen build, __file__ points inside bundle internals.
 	if getattr(sys, "frozen", False):
@@ -20,6 +27,8 @@ BASE_DIR = _resolve_base_dir()
 
 
 def _resolve_scripts_dir() -> Path:
+	# PyInstaller can place bundled data under _internal.
+	# During normal python runs, scripts stay in ./Scripts.
 	candidates = [
 		BASE_DIR / "Scripts",
 		BASE_DIR / "_internal" / "Scripts",
@@ -38,9 +47,12 @@ CONTACTS_JSON = BASE_DIR / "contacts.json"
 
 
 def _resolve_python_command(script: Path) -> list[str]:
+	# In source mode, run scripts with the current interpreter.
 	if not getattr(sys, "frozen", False):
 		return [sys.executable, str(script)]
 
+	# In EXE mode, this app is no longer running under python.exe.
+	# We look for a Python runtime on PATH so child scripts can execute.
 	python_cmd = shutil.which("python")
 	if python_cmd:
 		return [python_cmd, str(script)]
@@ -59,8 +71,11 @@ class ScriptRunnerApp:
 		self.root.geometry("900x560")
 
 		self.log_queue: queue.Queue[str] = queue.Queue()
+		# Handle to the currently running child process (if any).
 		self.current_process: subprocess.Popen[str] | None = None
+		# Cooperative stop flag checked by worker thread/read loop.
 		self.stop_requested = False
+		# Protects reads/writes to current_process from multiple threads.
 		self.process_lock = threading.Lock()
 		self.running = False
 
@@ -91,6 +106,7 @@ class ScriptRunnerApp:
 		self.run_all_btn = ttk.Button(button_row, text="Run All", command=self._run_all)
 		self.run_all_btn.pack(side=tk.LEFT, padx=(0, 8))
 
+		# Stop terminates the active child process tree.
 		self.stop_btn = ttk.Button(button_row, text="Stop", command=self._stop_current_process)
 		self.stop_btn.pack(side=tk.LEFT, padx=(0, 8))
 
@@ -120,6 +136,7 @@ class ScriptRunnerApp:
 			self._log("Running in packaged EXE mode")
 
 	def _set_running(self, running: bool) -> None:
+		# One place controls all button states to avoid inconsistent UI behavior.
 		self.running = running
 		state = tk.DISABLED if running else tk.NORMAL
 		self.run_contacts_btn.configure(state=state)
@@ -132,9 +149,12 @@ class ScriptRunnerApp:
 		self.log_text.delete("1.0", tk.END)
 
 	def _log(self, message: str) -> None:
+		# Worker thread never writes directly to Tk widgets.
+		# It pushes messages into a queue, then UI thread drains them safely.
 		self.log_queue.put(message)
 
 	def _flush_log_queue(self) -> None:
+		# Periodic UI-thread pump for background logs.
 		while not self.log_queue.empty():
 			line = self.log_queue.get_nowait()
 			self.log_text.insert(tk.END, line + "\n")
@@ -144,12 +164,14 @@ class ScriptRunnerApp:
 	def _run_single(self, script_path: Path) -> None:
 		if self.running:
 			return
+		# Reset stop intent before starting a new run.
 		self.stop_requested = False
 		threading.Thread(target=self._execute_scripts, args=([script_path],), daemon=True).start()
 
 	def _run_all(self) -> None:
 		if self.running:
 			return
+		# Run full pipeline in sequence: contacts first, then messages.
 		self.stop_requested = False
 		threading.Thread(
 			target=self._execute_scripts,
@@ -158,6 +180,7 @@ class ScriptRunnerApp:
 		).start()
 
 	def _stop_current_process(self) -> None:
+		# Sets shared flag and attempts immediate process termination.
 		self.stop_requested = True
 		with self.process_lock:
 			process = self.current_process
@@ -170,6 +193,7 @@ class ScriptRunnerApp:
 		self._log(f"Stopping PID {process.pid}...")
 		try:
 			if os.name == "nt":
+				# /T kills the child tree too, /F forces termination.
 				subprocess.run(["taskkill", "/PID", str(process.pid), "/T", "/F"], check=False, capture_output=True, text=True)
 			else:
 				process.terminate()
@@ -181,6 +205,7 @@ class ScriptRunnerApp:
 		self.status_var.set("Stopping...")
 
 	def _copy_json(self) -> None:
+		# Prefer final output messages.json, fallback to contacts.json.
 		json_path: Path | None = None
 		for candidate in (MESSAGES_JSON, CONTACTS_JSON):
 			if candidate.exists():
@@ -204,11 +229,13 @@ class ScriptRunnerApp:
 			self.status_var.set("Copy failed")
 
 	def _execute_scripts(self, scripts: list[Path]) -> None:
+		# Runs in a worker thread so UI stays responsive.
 		self.root.after(0, lambda: self._set_running(True))
 		self.root.after(0, lambda: self.status_var.set("Running..."))
 
 		try:
 			for script in scripts:
+				# Stop can happen between scripts.
 				if self.stop_requested:
 					self._log("Run stopped by user.")
 					break
@@ -222,6 +249,7 @@ class ScriptRunnerApp:
 				self._log("=" * 72)
 
 				command = _resolve_python_command(script)
+				# Stream stdout+stderr together so user sees one ordered log.
 				process = subprocess.Popen(
 					command,
 					cwd=str(BASE_DIR),
@@ -237,6 +265,7 @@ class ScriptRunnerApp:
 
 				assert process.stdout is not None
 				for line in process.stdout:
+					# Stop can also happen while a script is still producing output.
 					if self.stop_requested:
 						break
 					self._log(line.rstrip())
@@ -259,12 +288,14 @@ class ScriptRunnerApp:
 			self._log(f"Unexpected error: {exc}")
 			self.root.after(0, lambda: self.status_var.set("Error"))
 		finally:
+			# Clear process handle before re-enabling UI controls.
 			with self.process_lock:
 				self.current_process = None
 			self.root.after(0, lambda: self._set_running(False))
 
 
 def main() -> None:
+	# Ensure relative paths resolve from project root.
 	os.chdir(BASE_DIR)
 	root = tk.Tk()
 	app = ScriptRunnerApp(root)

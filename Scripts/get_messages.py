@@ -21,6 +21,10 @@ import hashlib
 import uiautomator2 as u2
 from datetime import datetime
 
+# Core runtime configuration.
+# DEVICE: ADB serial for the physical phone used for export automation.
+# WA_PKG: WhatsApp Business package name.
+# CONTACTS_FILE / MESSAGES_FILE: persistent JSON inputs/outputs for resumable runs.
 DEVICE        = "RF8Y10AWLYY"
 WA_PKG        = "com.whatsapp.w4b"
 CONTACTS_FILE = "contacts.json"
@@ -51,12 +55,14 @@ SYS_RE_ALT = re.compile(
 # ── ADB helpers ────────────────────────────────────────────────────────────────
 
 def adb(*args):
+    # Unified subprocess wrapper for all adb operations.
     return subprocess.run(
         ["adb", "-s", DEVICE] + list(args),
         capture_output=True, text=True, encoding="utf-8", errors="replace"
     )
 
 def list_device_txt_files():
+    # Discover exports produced either by WhatsApp default naming or WA Saver naming.
     r = adb(
         "shell",
         "find /sdcard/Download /sdcard/Documents "
@@ -66,6 +72,7 @@ def list_device_txt_files():
 
 
 def current_focus_line():
+    # Reads current Android foreground window for navigation diagnostics.
     r = adb("shell", "dumpsys", "window")
     for line in r.stdout.splitlines():
         if "mCurrentFocus" in line:
@@ -90,6 +97,7 @@ def open_chat_by_number(number):
     """
     # Normalise: strip everything except digits
     num = re.sub(r"\D", "", number)
+    # Launches chat via wa.me deep link, which is more reliable than tapping chat list.
     start = adb("shell", "am", "start",
         "-a", "android.intent.action.VIEW",
         "-d", f"https://wa.me/{num}",
@@ -104,6 +112,7 @@ def open_chat_by_number(number):
 
 def export_chat(d, contact_name):
     """Export the currently open chat. Returns path to the pulled .txt or None."""
+    # Snapshot files before export so we can detect the newly created transcript.
     before = list_device_txt_files()
     print(f"  [DEBUG] txt files before export: {len(before)}")
 
@@ -137,6 +146,7 @@ def export_chat(d, contact_name):
         print("  [DEBUG] 'Without media' chooser not found")
     time.sleep(2.5)
 
+    # Share sheet behavior varies heavily by OEM skin, so this block is intentionally defensive.
     # Tap "WA Saver" in the share sheet app row.
     # Samsung's ChooserActivity only shows ranked apps — scroll far right,
     # then look for "WA Saver" or a "More apps" / see-all button.
@@ -197,6 +207,7 @@ def export_chat(d, contact_name):
         fname = os.path.basename(remote)
         dest  = os.path.join(TXT_DIR, fname)
         adb("pull", remote, dest)
+        # We only need one transcript per chat export.
         return dest  # return first new file
 
     return None
@@ -215,6 +226,7 @@ def parse_txt(path):
                 m = MSG_RE.match(line)
                 if m:
                     if current:
+                        # Finalize previously open message before starting a new one.
                         messages.append(current)
                     current = {
                         "date":   m.group(1),
@@ -275,10 +287,12 @@ def make_timestamp_iso(date_str, time_str):
             return dt.strftime("%Y-%m-%dT%H:%M:%S.000Z")
         except ValueError:
             continue
+    # Fallback keeps pipeline moving even when a specific line has an unusual date format.
     return datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000Z")
 
 
 def empty_schema_db():
+    # Top-level schema expected by downstream app/import tooling.
     return {
         "bookings": {},
         "businesses": {},
@@ -334,6 +348,7 @@ def ensure_schema_db(db):
         }
 
         for idx, m in enumerate(payload.get("messages", [])):
+            # Stable-ish deterministic ID from message payload context.
             digest = hashlib.sha1(f"{conv_id}|{idx}|{m.get('date','')}|{m.get('time','')}|{m.get('sender','')}|{m.get('text','')}".encode("utf-8", errors="ignore")).hexdigest()[:20]
             ts = make_timestamp_iso(m.get("date", ""), m.get("time", ""))
             converted["messages"][digest] = {
@@ -349,6 +364,7 @@ def ensure_schema_db(db):
 
 
 def upsert_contact_messages(db, contact_name, numbers, msgs):
+    # Uses the first number as canonical conversation key for this contact.
     phone = re.sub(r"\D", "", numbers[0]) if numbers else ""
     client_id = f"cl_{phone}"
     conv_id = f"{RECEPTIONIST_ID}_{phone}"
@@ -394,6 +410,7 @@ def upsert_contact_messages(db, contact_name, numbers, msgs):
         last_text = content
 
     if last_ts:
+        # Useful for showing conversation preview in a UI later.
         conversation["lastMessageAt"] = last_ts
         conversation["lastMessage"] = last_text
     db["conversations"][conv_id] = conversation
@@ -402,6 +419,7 @@ def upsert_contact_messages(db, contact_name, numbers, msgs):
 # ── Main ───────────────────────────────────────────────────────────────────────
 
 def load_json(path, default):
+    # Safe file load helper with default fallback when file does not exist yet.
     if os.path.exists(path):
         with open(path, encoding="utf-8") as f:
             return json.load(f)
@@ -412,12 +430,14 @@ def save_json(path, data):
         json.dump(data, f, ensure_ascii=False, indent=2)
 
 def main():
+    # contacts.json is the source-of-truth queue for which contacts to export.
     contacts = load_json(CONTACTS_FILE, [])
     if not contacts:
         print(f"No contacts found in {CONTACTS_FILE}. Run get_contacts.py first.")
         return
 
     raw_db = load_json(MESSAGES_FILE, {})
+    # Accept either legacy output or the newer app schema.
     messages_db = ensure_schema_db(raw_db)
 
     print(f"Loaded {len(contacts)} contacts.")
@@ -465,6 +485,7 @@ def main():
         done += 1
 
         # Save progress after every contact
+        # This makes the run resumable if interrupted mid-way.
         save_json(MESSAGES_FILE, messages_db)
         save_json(CONTACTS_FILE, contacts)
         print(f"  Saved. Progress: {done} done, {skipped} skipped.")
