@@ -1,22 +1,21 @@
 {
-  "name": "whatsapp-pull-chats",
-  "productName": "whatsapp-pull-chats",
+  "name": "tellic",
+  "productName": "Tellic",
   "version": "1.0.0",
-  "description": "My Electron application description",
+  "description": "Tellic - archive chat transcripts from your Android device over ADB.",
   "main": ".vite/build/main.js",
   "private": true,
   "scripts": {
     "build:icons": "node scripts/build-icons.mjs",
     "prestart": "npm run build:icons",
     "start": "electron-forge start",
-    "prepackage": "npm run build:icons",
+    "prepackage": "powershell -ExecutionPolicy Bypass -File scripts/fetch-adb.ps1",
     "package": "electron-forge package",
     "premake": "npm run build:icons",
     "make": "electron-forge make",
     "publish": "electron-forge publish",
     "lint": "eslint --ext .ts,.tsx .",
-    "fetch:adb": "powershell -ExecutionPolicy Bypass -File scripts/fetch-adb.ps1",
-    "prepackage": "powershell -ExecutionPolicy Bypass -File scripts/fetch-adb.ps1"
+    "fetch:adb": "powershell -ExecutionPolicy Bypass -File scripts/fetch-adb.ps1"
   },
   "keywords": [],
   "author": "USER PC",
@@ -29,6 +28,7 @@
   },
   "devDependencies": {
     "@electron-forge/cli": "^7.11.1",
+    "@electron-forge/maker-appx": "^7.11.1",
     "@electron-forge/maker-deb": "^7.11.1",
     "@electron-forge/maker-rpm": "^7.11.1",
     "@electron-forge/maker-squirrel": "^7.11.1",

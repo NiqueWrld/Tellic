@@ -2,7 +2,7 @@ import type { Route } from './index';
 import { useTheme } from '../../context';
 import logoUrl from '../../assets/logo.svg';
 
-const APP_NAME = 'WhatsApp Pull Chats';
+const APP_NAME = 'Tellic';
 
 type Section = 'app' | 'docs';
 type NavItem = { key: Route; label: string; icon: string; section: Section };
