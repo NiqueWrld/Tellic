@@ -5,6 +5,8 @@
 @import "@phosphor-icons/web/fill";
 @import "@phosphor-icons/web/duotone";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 body {
   font-family: 'Space Grotesk', sans-serif;
   background-color: var(--bg-primary);
