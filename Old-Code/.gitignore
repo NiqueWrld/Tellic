@@ -1,0 +1,36 @@
+# Secrets
+.env
+google_token.json
+contacts.json
+messages.json
+/*.json
+Exported Chats/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# PyInstaller output
+build/
+dist/
+*.spec
+
+# WaSaver build outputs
+WaSaver/bin/
+WaSaver/obj/
+WaSaver/gen/
+WaSaver/apk/
+
+# Ignore all WhatsApp Business media (large files)
+WhatsApp Business/WhatsApp Audio/
+WhatsApp Business/WhatsApp Images/
+WhatsApp Business/WhatsApp Video/
+WhatsApp Business/WhatsApp Documents/
+WhatsApp Business/WhatsApp Voice Notes/
+WhatsApp Business/WhatsApp Stickers/
+WhatsApp Business/WhatsApp Animated Gifs/
+WhatsApp Business/.Statuses/
+
+# Keep only databases (chat backups)
+!WhatsApp Business/Databases/
