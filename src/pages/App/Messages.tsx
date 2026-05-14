@@ -12,6 +12,7 @@ export function MessagesPage() {
     error,
     savedPath,
     pull: start,
+    rebuild,
   } = useMessages();
 
   const [filter, setFilter] = useState('');
@@ -66,6 +67,16 @@ export function MessagesPage() {
         </div>
         <div className="flex items-center gap-2">
           <CopyJsonButton data={db} disabled={totalMessages === 0} label="Copy JSON" />
+          <button
+            type="button"
+            onClick={rebuild}
+            disabled={running}
+            title="Reparse all .txt files in Exported Chats/ and rebuild messages.json"
+            className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-60 text-gray-700 dark:text-gray-200 text-sm font-medium transition-colors"
+          >
+            <i className={`ph ${running ? 'ph-spinner animate-spin' : 'ph-arrows-counter-clockwise'}`} />
+            Rebuild from exports
+          </button>
           <button
             type="button"
             onClick={start}

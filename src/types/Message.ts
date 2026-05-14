@@ -16,6 +16,7 @@ export type MessagesProgress = {
     | 'contact-export'
     | 'contact-parse'
     | 'contact-done'
+    | 'file-parse'
     | 'done'
     | 'error';
   message: string;

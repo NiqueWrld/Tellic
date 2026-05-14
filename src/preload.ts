@@ -35,6 +35,8 @@ const adb = {
   }> => ipcRenderer.invoke('contacts:load'),
   pullMessages: (serial: string): Promise<MessagesResult> =>
     ipcRenderer.invoke('adb:pull-messages', serial),
+  rebuildMessages: (): Promise<MessagesResult> =>
+    ipcRenderer.invoke('messages:rebuild'),
   onMessagesProgress: (cb: (p: MessagesProgress) => void) => {
     const listener = (_e: unknown, p: MessagesProgress) => cb(p);
     ipcRenderer.on('adb:pull-messages:progress', listener);

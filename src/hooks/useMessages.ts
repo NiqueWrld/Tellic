@@ -80,6 +80,27 @@ export function useMessages() {
     }
   }, [selected]);
 
+  const rebuild = useCallback(async () => {
+    if (!window.adb) return;
+    setRunning(true);
+    setError(null);
+    setLog([]);
+    setProgress(null);
+    try {
+      const res = await window.adb.rebuildMessages();
+      if (!res.ok) {
+        setError(res.error || 'Rebuild failed.');
+      } else {
+        const fresh = await window.adb.loadMessages();
+        if (fresh.ok) setDb(fresh.db);
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setRunning(false);
+    }
+  }, []);
+
   return {
     selected,
     db,
@@ -89,6 +110,7 @@ export function useMessages() {
     error,
     savedPath,
     pull,
+    rebuild,
   };
 }
 

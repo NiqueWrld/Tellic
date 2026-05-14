@@ -722,13 +722,22 @@ function upsertContactMessages(
     lastMessage: existingConv?.lastMessage,
   };
 
+  // WhatsApp's export labels the contact with the name as saved in this device's
+  // address book. That label may not equal `contactName` exactly (e.g. saved as
+  // "NW IT" but the chat shows "NW IT Solutions PTY LTD"). A strict ===
+  // comparison would flag every message as outbound. Instead pick the sender
+  // label that best matches `contactName`; everything else is the device owner.
+  const contactSender = pickContactSender(msgs, contactName);
+
   let added = 0;
   let lastTs: string | undefined;
   let lastText = '';
   for (const m of msgs) {
     const ts = makeIso(m.date, m.time);
     const direction: 'inbound' | 'outbound' =
-      m.sender === contactName || m.sender === 'system' ? 'inbound' : 'outbound';
+      m.sender === 'system' || (contactSender !== null && m.sender === contactSender)
+        ? 'inbound'
+        : 'outbound';
     // Stable, content-addressed hash — re-exports produce the same id, so
     // existing messages overwrite themselves and only new ones grow the DB.
     const key = `${convId}|${m.date}|${m.time}|${m.sender}|${m.text}`;
@@ -753,6 +762,47 @@ function upsertContactMessages(
   }
   db.conversations[convId] = conv;
   return { added, parsed: msgs.length };
+}
+
+// Picks the sender label that most likely represents the contact (vs. the
+// device owner). Returns null when there are no human senders.
+function pickContactSender(msgs: Message[], contactName: string): string | null {
+  const senders = new Set<string>();
+  for (const m of msgs) {
+    if (m.sender && m.sender !== 'system') senders.add(m.sender);
+  }
+  if (senders.size === 0) return null;
+  if (senders.size === 1) return [...senders][0];
+
+  const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+  const cn = norm(contactName);
+  if (!cn) return [...senders][0];
+
+  let best: string | null = null;
+  let bestScore = -1;
+  for (const s of senders) {
+    const ns = norm(s);
+    let score: number;
+    if (ns === cn) score = 1000;
+    else if (ns.includes(cn) || cn.includes(ns)) score = 500 + Math.min(ns.length, cn.length);
+    else {
+      // Longest common substring length as a fallback similarity score.
+      let lcs = 0;
+      for (let i = 0; i < ns.length; i++) {
+        for (let j = 0; j < cn.length; j++) {
+          let k = 0;
+          while (i + k < ns.length && j + k < cn.length && ns[i + k] === cn[j + k]) k++;
+          if (k > lcs) lcs = k;
+        }
+      }
+      score = lcs;
+    }
+    if (score > bestScore) {
+      bestScore = score;
+      best = s;
+    }
+  }
+  return best;
 }
 
 async function loadSchemaDb(): Promise<SchemaDb> {
@@ -935,6 +985,187 @@ async function pullMessages(
 ipcMain.handle('adb:pull-messages', (event, serial: string) =>
   pullMessages(serial, event),
 );
+
+// ---------------------------------------------------------------------------
+// Rebuild messages.json from already-exported .txt files
+// ---------------------------------------------------------------------------
+
+async function rebuildMessagesFromExports(
+  event: IpcMainInvokeEvent,
+): Promise<MessagesResult> {
+  const emit = (p: MessagesProgress) => {
+    if (!event.sender.isDestroyed()) {
+      event.sender.send('adb:pull-messages:progress', p);
+    }
+  };
+  try {
+    const contacts = await loadContactsFromDisk();
+    const exportDir = path.join(app.getPath('userData'), 'Exported Chats');
+    let files: string[] = [];
+    try {
+      files = (await fs.readdir(exportDir)).filter((f) => f.toLowerCase().endsWith('.txt'));
+    } catch {
+      // ignore
+    }
+    if (files.length === 0) {
+      const msg = 'No .txt files found in Exported Chats/.';
+      emit({ phase: 'error', message: msg });
+      return { ok: false, exported: 0, skipped: 0, added: 0, contacts, error: msg };
+    }
+
+    // Incremental: load existing DB so we only add genuinely new messages.
+    const db = await loadSchemaDb();
+    let exported = 0;
+    let skipped = 0;
+    let addedTotal = 0;
+    const total = files.length;
+
+    emit({
+      phase: 'start',
+      message: `Rebuilding from ${total} export file(s)…`,
+      total,
+    });
+
+    const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+    for (let i = 0; i < total; i++) {
+      const file = files[i];
+      const full = path.join(exportDir, file);
+      let raw: string;
+      try {
+        raw = await fs.readFile(full, 'utf-8');
+      } catch (e) {
+        skipped++;
+        emit({
+          phase: 'contact-skip',
+          message: `[${i + 1}/${total}] ${file} — read error`,
+          index: i + 1,
+          total,
+          name: file,
+        });
+        continue;
+      }
+      const parsed = parseExportFile(raw);
+      if (parsed.length === 0) {
+        skipped++;
+        emit({
+          phase: 'contact-skip',
+          message: `[${i + 1}/${total}] ${file} — no parsable messages`,
+          index: i + 1,
+          total,
+          name: file,
+        });
+        continue;
+      }
+
+      // Collect non-system senders, then fuzzy-match to a contact by name.
+      const senders = new Set<string>();
+      for (const m of parsed) {
+        if (m.sender && m.sender !== 'system') senders.add(m.sender);
+      }
+      let match: Contact | null = null;
+      let matchSender: string | null = null;
+      let bestScore = -1;
+      for (const s of senders) {
+        const ns = norm(s);
+        for (const c of contacts) {
+          const nc = norm(c.name);
+          if (!nc || !ns) continue;
+          let score: number;
+          if (ns === nc) score = 1000;
+          else if (ns.includes(nc) || nc.includes(ns))
+            score = 500 + Math.min(ns.length, nc.length);
+          else {
+            let lcs = 0;
+            for (let a = 0; a < ns.length; a++) {
+              for (let b = 0; b < nc.length; b++) {
+                let k = 0;
+                while (
+                  a + k < ns.length &&
+                  b + k < nc.length &&
+                  ns[a + k] === nc[b + k]
+                )
+                  k++;
+                if (k > lcs) lcs = k;
+              }
+            }
+            score = lcs;
+          }
+          if (score > bestScore && score >= 3) {
+            bestScore = score;
+            match = c;
+            matchSender = s;
+          }
+        }
+      }
+
+      if (!match || (match.numbers || []).length === 0) {
+        skipped++;
+        emit({
+          phase: 'contact-skip',
+          message: `[${i + 1}/${total}] ${file} — no contact match (senders: ${[...senders].join(', ') || 'none'})`,
+          index: i + 1,
+          total,
+          name: file,
+        });
+        continue;
+      }
+
+      emit({
+        phase: 'file-parse',
+        message: `[${i + 1}/${total}] ${file} → ${match.name} (${matchSender})`,
+        index: i + 1,
+        total,
+        name: match.name,
+      });
+
+      const { added } = upsertContactMessages(db, match.name, match.numbers, parsed);
+
+      if (added === 0) {
+        skipped++;
+        emit({
+          phase: 'contact-skip',
+          message: `[${i + 1}/${total}] ${file} → ${match.name} — already up to date (${parsed.length} messages)`,
+          index: i + 1,
+          total,
+          name: match.name,
+          parsed: parsed.length,
+          added: 0,
+        });
+        continue;
+      }
+
+      addedTotal += added;
+      exported++;
+
+      // Persist incrementally so a crash mid-rebuild keeps progress.
+      await saveSchemaDb(db);
+
+      emit({
+        phase: 'contact-done',
+        message: `  +${added} messages (parsed ${parsed.length})`,
+        index: i + 1,
+        total,
+        name: match.name,
+        parsed: parsed.length,
+        added,
+      });
+    }
+
+    emit({
+      phase: 'done',
+      message: `Rebuilt. ${exported} files imported, ${skipped} skipped, ${addedTotal} messages.`,
+      total,
+    });
+    return { ok: true, exported, skipped, added: addedTotal, contacts };
+  } catch (e) {
+    const message = e instanceof Error ? e.message : String(e);
+    emit({ phase: 'error', message });
+    return { ok: false, exported: 0, skipped: 0, added: 0, contacts: [], error: message };
+  }
+}
+
+ipcMain.handle('messages:rebuild', (event) => rebuildMessagesFromExports(event));
 
 ipcMain.handle(
   'messages:load',
