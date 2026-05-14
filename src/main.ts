@@ -3,6 +3,7 @@ import path from 'node:path';
 import fs from 'node:fs/promises';
 import { execFile } from 'node:child_process';
 import started from 'electron-squirrel-startup';
+import dotenv from 'dotenv';
 import type { Contact, ContactsProgress, ContactsResult } from './types/Contact';
 import type {
   Message,
@@ -11,6 +12,13 @@ import type {
   SchemaDb,
 } from './types/Message';
 import crypto from 'node:crypto';
+
+// Load .env from the project root in dev, or from the resources dir in packaged builds.
+dotenv.config({
+  path: app.isPackaged
+    ? path.join(process.resourcesPath, '.env')
+    : path.join(__dirname, '..', '..', '.env'),
+});
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
@@ -22,6 +30,7 @@ const createWindow = () => {
   const mainWindow = new BrowserWindow({
     width: 1100,
     height: 720,
+    icon: path.join(__dirname, '..', '..', 'assets', 'icon.png'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -38,8 +47,10 @@ const createWindow = () => {
     );
   }
 
-  // Open the DevTools.
-  mainWindow.webContents.openDevTools();
+  // Open the DevTools only outside of production builds.
+  if (!app.isPackaged) {
+    mainWindow.webContents.openDevTools();
+  }
 };
 
 // ---------------------------------------------------------------------------
@@ -406,8 +417,10 @@ ipcMain.handle(
 // Messages pull — ports Scripts/get_messages.py to TypeScript / Electron
 // ---------------------------------------------------------------------------
 
-const BUSINESS_ID = '1026a370-4102-459f-956b-f09809735835';
-const RECEPTIONIST_ID = 'jSI05Mk0PHA7VzjUqgLE';
+const BUSINESS_ID =
+  process.env.BUSINESS_ID || '1026a370-4102-459f-956b-f09809735835';
+const RECEPTIONIST_ID =
+  process.env.RECEPTIONIST_ID || 'jSI05Mk0PHA7VzjUqgLE';
 
 const MSG_RE =
   /^\[(\d{1,2}\/\d{1,2}\/\d{4}),\s*(\d{1,2}:\d{2}:\d{2})\]\s*([^:]+):\s*(.*)$/;

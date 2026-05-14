@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useContacts } from '../../hooks';
+import { CopyJsonButton } from '../../components/CopyJsonButton';
 
 export function ContactsPage() {
   const {
@@ -47,6 +48,7 @@ export function ContactsPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <CopyJsonButton data={contacts} disabled={contacts.length === 0} />
           <button
             type="button"
             onClick={start}

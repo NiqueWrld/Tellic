@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useMessages } from '../../hooks';
+import { CopyJsonButton } from '../../components/CopyJsonButton';
 
 export function MessagesPage() {
   const {
@@ -63,15 +64,18 @@ export function MessagesPage() {
             )}
           </p>
         </div>
-        <button
-          type="button"
-          onClick={start}
-          disabled={!selected || running}
-          className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white text-sm font-medium transition-colors"
-        >
-          <i className={`ph ${running ? 'ph-spinner animate-spin' : 'ph-download-simple'}`} />
-          {running ? 'Exporting…' : totalMessages > 0 ? 'Sync new messages' : 'Export all chats'}
-        </button>
+        <div className="flex items-center gap-2">
+          <CopyJsonButton data={db} disabled={totalMessages === 0} label="Copy JSON" />
+          <button
+            type="button"
+            onClick={start}
+            disabled={!selected || running}
+            className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white text-sm font-medium transition-colors"
+          >
+            <i className={`ph ${running ? 'ph-spinner animate-spin' : 'ph-download-simple'}`} />
+            {running ? 'Exporting…' : totalMessages > 0 ? 'Sync new messages' : 'Export all chats'}
+          </button>
+        </div>
       </div>
 
       {error && (

@@ -6,8 +6,12 @@
   "main": ".vite/build/main.js",
   "private": true,
   "scripts": {
+    "build:icons": "node scripts/build-icons.mjs",
+    "prestart": "npm run build:icons",
     "start": "electron-forge start",
+    "prepackage": "npm run build:icons",
     "package": "electron-forge package",
+    "premake": "npm run build:icons",
     "make": "electron-forge make",
     "publish": "electron-forge publish",
     "lint": "eslint --ext .ts,.tsx ."
@@ -41,12 +45,15 @@
     "electron": "^42.0.1",
     "eslint": "^8.57.1",
     "eslint-plugin-import": "^2.32.0",
+    "png-to-ico": "^3.0.1",
+    "sharp": "^0.34.5",
     "tailwindcss": "^4.3.0",
     "typescript": "~4.5.5",
     "vite": "^5.4.21"
   },
   "dependencies": {
     "@phosphor-icons/web": "^2.1.2",
+    "dotenv": "^17.4.2",
     "electron-squirrel-startup": "^1.0.1",
     "react": "^19.2.6",
     "react-dom": "^19.2.6"
