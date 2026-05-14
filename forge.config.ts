@@ -3,6 +3,7 @@ import { MakerSquirrel } from '@electron-forge/maker-squirrel';
 import { MakerZIP } from '@electron-forge/maker-zip';
 import { MakerDeb } from '@electron-forge/maker-deb';
 import { MakerRpm } from '@electron-forge/maker-rpm';
+import { MakerAppX } from '@electron-forge/maker-appx';
 import { VitePlugin } from '@electron-forge/plugin-vite';
 import { FusesPlugin } from '@electron-forge/plugin-fuses';
 import { FuseV1Options, FuseVersion } from '@electron/fuses';
@@ -17,6 +18,15 @@ const config: ForgeConfig = {
   makers: [
     new MakerSquirrel({
       setupIcon: 'assets/icon.ico',
+    }),
+    new MakerAppX({
+      // Microsoft Store identity values (from Partner Center).
+      publisher: 'CN=3C3B9E40-19CE-4CF9-8559-FDED2BE523C2',
+      identityName: 'NiqueWrld.Tellic',
+      publisherDisplayName: 'NiqueWrld',
+      packageDisplayName: 'Tellic',
+      packageName: 'NiqueWrld.Tellic',
+      packageVersion: '1.0.0.0',
     }),
     new MakerZIP({}, ['darwin']),
     new MakerRpm({
