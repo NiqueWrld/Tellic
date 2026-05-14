@@ -1,4 +1,7 @@
-export { HomePage } from './Docs/Home';
+export { HomePage } from './App/Home';
+export { ContactsPage } from './App/Contacts';
+export { MessagesPage } from './App/Messages';
+export { HomePage as DocsHomePage } from './Docs/Home';
 export { OverviewPage } from './Docs/Overview';
 export { UsagePage } from './Docs/Usage';
 export { BuildPage } from './Docs/Build';

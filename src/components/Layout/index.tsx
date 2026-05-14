@@ -4,6 +4,9 @@ import { Header } from './Header';
 import { Footer } from './Footer';
 import {
   HomePage,
+  ContactsPage,
+  MessagesPage,
+  DocsHomePage,
   OverviewPage,
   UsagePage,
   BuildPage,
@@ -13,6 +16,8 @@ import {
 
 export type Route =
   | 'home'
+  | 'contacts'
+  | 'messages'
   | 'overview'
   | 'usage'
   | 'build'
@@ -20,7 +25,9 @@ export type Route =
   | 'privacy';
 
 const ROUTES: Record<Route, string> = {
-  home: 'Overview',
+  home: 'Devices',
+  contacts: 'Contacts',
+  messages: 'Messages',
   overview: 'Project Overview',
   usage: 'Usage',
   build: 'Build',
@@ -96,6 +103,10 @@ function PageRouter({ route }: { route: Route }) {
   switch (route) {
     case 'home':
       return <HomePage />;
+    case 'contacts':
+      return <ContactsPage />;
+    case 'messages':
+      return <MessagesPage />;
     case 'overview':
       return <OverviewPage />;
     case 'usage':

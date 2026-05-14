@@ -3,15 +3,22 @@ import { useTheme } from '../../context';
 
 const APP_NAME = 'WhatsApp Pull Chats';
 
-type NavItem = { key: Route; label: string; icon: string };
+type Section = 'app' | 'docs';
+type NavItem = { key: Route; label: string; icon: string; section: Section };
 
 const NAV: NavItem[] = [
-  { key: 'home', label: 'Overview', icon: 'ph-house' },
-  { key: 'overview', label: 'Project Overview', icon: 'ph-info' },
-  { key: 'usage', label: 'Usage', icon: 'ph-play-circle' },
-  { key: 'build', label: 'Build', icon: 'ph-package' },
-  { key: 'contribute', label: 'Contribute', icon: 'ph-git-pull-request' },
+  { key: 'home', label: 'Devices', icon: 'ph-device-mobile', section: 'app' },
+  { key: 'contacts', label: 'Contacts', icon: 'ph-address-book', section: 'app' },
+  { key: 'messages', label: 'Messages', icon: 'ph-chats-circle', section: 'app' },
+  { key: 'overview', label: 'Project Overview', icon: 'ph-info', section: 'docs' },
+  { key: 'usage', label: 'Usage', icon: 'ph-play-circle', section: 'docs' },
+  { key: 'build', label: 'Build', icon: 'ph-package', section: 'docs' },
+  { key: 'contribute', label: 'Contribute', icon: 'ph-git-pull-request', section: 'docs' },
 ];
+
+function sectionFor(route: Route): Section {
+  return NAV.find((n) => n.key === route)?.section ?? 'app';
+}
 
 function hrefFor(key: Route) {
   return '#/' + (key === 'home' ? '' : key);
@@ -24,12 +31,15 @@ type Props = {
 
 export function Sidebar({ route, onCloseMobile }: Props) {
   const { isDark, toggleTheme } = useTheme();
+  const currentSection = sectionFor(route);
+  const appNav = NAV.filter((n) => n.section === 'app');
+  const docsNav = NAV.filter((n) => n.section === 'docs');
   return (
     <aside className="w-64 bg-white dark:bg-gray-900 lg:bg-transparent lg:dark:bg-transparent h-full flex-shrink-0 flex flex-col overflow-hidden">
       {/* Logo + app name */}
       <a
         href={hrefFor('home')}
-        className="flex items-center gap-3 mt-4 mb-6 px-4 hover:opacity-80 transition-opacity"
+        className="flex items-center gap-3 mt-4 mb-4 px-4 hover:opacity-80 transition-opacity"
       >
         <img src="/logo.svg" alt="" className="h-8 w-8 flex-shrink-0" />
         <div className="flex flex-col leading-tight">
@@ -37,15 +47,48 @@ export function Sidebar({ route, onCloseMobile }: Props) {
             {APP_NAME}
           </span>
           <span className="text-[10px] font-medium uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
-            docs
+            {currentSection === 'app' ? 'app' : 'docs'}
           </span>
         </div>
       </a>
 
+      {/* Section switcher */}
+      <div className="px-4 mb-4">
+        <div className="flex p-1 bg-gray-100 dark:bg-gray-800 rounded-lg">
+          <a
+            href={hrefFor('home')}
+            className={[
+              'flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-md text-xs font-medium transition-colors',
+              currentSection === 'app'
+                ? 'bg-white dark:bg-gray-900 text-indigo-600 dark:text-indigo-400 shadow-sm'
+                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white',
+            ].join(' ')}
+          >
+            <i className="ph-fill ph-device-mobile" />
+            App
+          </a>
+          <a
+            href={hrefFor('overview')}
+            className={[
+              'flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-md text-xs font-medium transition-colors',
+              currentSection === 'docs'
+                ? 'bg-white dark:bg-gray-900 text-indigo-600 dark:text-indigo-400 shadow-sm'
+                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white',
+            ].join(' ')}
+          >
+            <i className="ph-fill ph-book-open" />
+            Docs
+          </a>
+        </div>
+      </div>
+
       {/* Main nav */}
       <nav className="flex-1 min-h-0 overflow-hidden flex flex-col px-4">
         <div className="flex-1 min-h-0 overflow-y-auto space-y-1">
-          {NAV.map((item) => {
+          <div className="px-3 pb-1 text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
+            {currentSection === 'app' ? 'App' : 'Docs'}
+          </div>
+          {(currentSection === 'app' ? appNav : docsNav).map((item) => {
             const isActive = item.key === route;
             const cls = [
               'flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors',
