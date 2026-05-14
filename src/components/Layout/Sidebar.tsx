@@ -1,4 +1,5 @@
 import type { Route } from './index';
+import { useTheme } from '../../context';
 
 const APP_NAME = 'WhatsApp Pull Chats';
 
@@ -19,10 +20,10 @@ function hrefFor(key: Route) {
 type Props = {
   route: Route;
   onCloseMobile?: () => void;
-  onToggleTheme: () => void;
 };
 
-export function Sidebar({ route, onCloseMobile, onToggleTheme }: Props) {
+export function Sidebar({ route, onCloseMobile }: Props) {
+  const { isDark, toggleTheme } = useTheme();
   return (
     <aside className="w-64 bg-white dark:bg-gray-900 lg:bg-transparent lg:dark:bg-transparent h-full flex-shrink-0 flex flex-col overflow-hidden">
       {/* Logo + app name */}
@@ -93,11 +94,17 @@ export function Sidebar({ route, onCloseMobile, onToggleTheme }: Props) {
             </a>
             <button
               type="button"
-              onClick={onToggleTheme}
+              onClick={toggleTheme}
               className="w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white transition-colors"
             >
-              <i className="ph-duotone ph-circle-half text-lg" />
-              <span className="flex-1 text-left">Toggle theme</span>
+              <i
+                className={`ph-duotone ${
+                  isDark ? 'ph-sun' : 'ph-moon'
+                } text-lg`}
+              />
+              <span className="flex-1 text-left">
+                {isDark ? 'Light mode' : 'Dark mode'}
+              </span>
             </button>
           </div>
         </div>

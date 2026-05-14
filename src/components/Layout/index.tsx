@@ -2,7 +2,14 @@ import { useCallback, useEffect, useState } from 'react';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
 import { Footer } from './Footer';
-import { HomePage } from '../../pages';
+import {
+  HomePage,
+  OverviewPage,
+  UsagePage,
+  BuildPage,
+  ContributePage,
+  PrivacyPage,
+} from '../../pages';
 
 export type Route =
   | 'home'
@@ -44,11 +51,6 @@ export function Layout() {
   const openSidebar = useCallback(() => setMobileOpen(true), []);
   const closeSidebar = useCallback(() => setMobileOpen(false), []);
 
-  const toggleTheme = useCallback(() => {
-    const isDark = document.documentElement.classList.toggle('dark');
-    localStorage.theme = isDark ? 'dark' : 'light';
-  }, []);
-
   return (
     <div className="h-screen flex bg-gray-100 dark:bg-gray-900 overflow-hidden">
       {/* Mobile overlay */}
@@ -68,13 +70,12 @@ export function Layout() {
         <Sidebar
           route={route}
           onCloseMobile={closeSidebar}
-          onToggleTheme={toggleTheme}
         />
       </aside>
 
       {/* Desktop sidebar */}
       <aside className="hidden md:block h-screen sticky top-0">
-        <Sidebar route={route} onToggleTheme={toggleTheme} />
+        <Sidebar route={route} />
       </aside>
 
       {/* Main */}
@@ -95,11 +96,15 @@ function PageRouter({ route }: { route: Route }) {
   switch (route) {
     case 'home':
       return <HomePage />;
-    default:
-      return (
-        <div className="text-gray-500 dark:text-gray-400">
-          Page <span className="font-mono">{route}</span> coming soon.
-        </div>
-      );
+    case 'overview':
+      return <OverviewPage />;
+    case 'usage':
+      return <UsagePage />;
+    case 'build':
+      return <BuildPage />;
+    case 'contribute':
+      return <ContributePage />;
+    case 'privacy':
+      return <PrivacyPage />;
   }
 }

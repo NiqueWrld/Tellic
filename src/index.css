@@ -1,6 +1,9 @@
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
 @import "tailwindcss";
 @import "@phosphor-icons/web/regular";
+@import "@phosphor-icons/web/bold";
+@import "@phosphor-icons/web/fill";
+@import "@phosphor-icons/web/duotone";
 
 body {
   font-family: 'Space Grotesk', sans-serif;
