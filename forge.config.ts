@@ -11,7 +11,7 @@ const config: ForgeConfig = {
   packagerConfig: {
     asar: true,
     icon: 'assets/icon', // Forge picks .ico / .icns / .png per platform.
-    extraResource: ['.env'],
+    extraResource: ['.env', './resources/adb'],
   },
   rebuildConfig: {},
   makers: [

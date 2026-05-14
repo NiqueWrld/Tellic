@@ -1,4 +1,5 @@
 import { useTheme } from '../../context';
+import logoUrl from '../../assets/logo.svg';
 
 const APP_NAME = 'WhatsApp Pull Chats';
 
@@ -12,7 +13,7 @@ export function Header({ onOpenSidebar }: Props) {
     <header className="md:hidden px-4 py-4 flex items-center justify-between">
       <div className="flex items-center gap-3">
         <a href="#/" className="flex items-center gap-2 md:hidden">
-          <img src="/logo.svg" alt="" className="h-8 w-8" />
+          <img src={logoUrl} alt="" className="h-8 w-8" />
           <span className="text-lg font-bold dark:text-white">{APP_NAME}</span>
         </a>
       </div>

@@ -4,6 +4,7 @@ import fs from 'node:fs/promises';
 import { execFile } from 'node:child_process';
 import started from 'electron-squirrel-startup';
 import dotenv from 'dotenv';
+import { getAdbPath } from './adb-path';
 import type { Contact, ContactsProgress, ContactsResult } from './types/Contact';
 import type {
   Message,
@@ -107,14 +108,14 @@ function parseAdbDevices(stdout: string): AdbDevice[] {
 function runAdbDevices(): Promise<AdbListResult> {
   return new Promise((resolve) => {
     execFile(
-      'adb',
+      getAdbPath(),
       ['devices', '-l'],
       { windowsHide: true, timeout: 15000 },
       (err, stdout, stderr) => {
         if (err) {
           const code = (err as NodeJS.ErrnoException).code;
           const msg = code === 'ENOENT'
-            ? 'adb not found on PATH. Install Android Platform Tools and try again.'
+            ? 'adb not found. Run `pnpm fetch:adb` to bundle the platform-tools.'
             : (stderr || err.message || String(err)).trim();
           resolve({ ok: false, devices: [], error: msg, raw: stdout });
           return;
@@ -141,14 +142,14 @@ const PHONE_RE = /^\+?\d{7,15}$/;
 function adbExec(serial: string, args: string[], timeoutMs = 20000): Promise<string> {
   return new Promise((resolve, reject) => {
     execFile(
-      'adb',
+      getAdbPath(),
       ['-s', serial, ...args],
       { windowsHide: true, timeout: timeoutMs, maxBuffer: 32 * 1024 * 1024 },
       (err, stdout, stderr) => {
         if (err) {
           const code = (err as NodeJS.ErrnoException).code;
           if (code === 'ENOENT') {
-            reject(new Error('adb not found on PATH.'));
+            reject(new Error('adb not found. Run `pnpm fetch:adb` to bundle the platform-tools.'));
             return;
           }
           reject(new Error((stderr || err.message || String(err)).trim()));

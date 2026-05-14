@@ -14,7 +14,9 @@
     "premake": "npm run build:icons",
     "make": "electron-forge make",
     "publish": "electron-forge publish",
-    "lint": "eslint --ext .ts,.tsx ."
+    "lint": "eslint --ext .ts,.tsx .",
+    "fetch:adb": "powershell -ExecutionPolicy Bypass -File scripts/fetch-adb.ps1",
+    "prepackage": "powershell -ExecutionPolicy Bypass -File scripts/fetch-adb.ps1"
   },
   "keywords": [],
   "author": "USER PC",
