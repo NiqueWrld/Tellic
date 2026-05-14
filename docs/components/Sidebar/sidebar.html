@@ -1,0 +1,82 @@
+<!-- Sidebar partial — loaded by Layout via fetch().
+     Ported from the React <Sidebar> component (Phosphor icons, indigo accents,
+     usage card + user/account menu). -->
+<aside class="w-64 bg-white dark:bg-gray-900 lg:bg-transparent lg:dark:bg-transparent h-full flex-shrink-0 flex flex-col overflow-hidden">
+
+    <!-- Logo + app name -->
+    <a data-nav="home" class="flex items-center gap-3 mt-4 mb-6 px-4 hover:opacity-80 transition-opacity">
+        <img src="/assets/logo.svg" alt="" class="h-8 w-8 flex-shrink-0" />
+        <div class="flex flex-col leading-tight">
+            <span class="text-lg font-semibold text-gray-900 dark:text-white" data-app-name>WhatsApp Pull Chats</span>
+            <span class="text-[10px] font-medium uppercase tracking-wider text-indigo-600 dark:text-indigo-400">docs</span>
+        </div>
+    </a>
+
+    <!-- Main nav -->
+    <nav class="flex-1 min-h-0 overflow-hidden flex flex-col px-4">
+        <div class="flex-1 min-h-0 overflow-y-auto space-y-1">
+            <a data-nav="home" data-navlink class="flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white transition-colors">
+                <i class="ph-duotone ph-house text-lg"></i>
+                Overview
+            </a>
+            <a data-nav="overview" data-navlink class="flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white transition-colors">
+                <i class="ph-duotone ph-info text-lg"></i>
+                Project Overview
+            </a>
+            <a data-nav="usage" data-navlink class="flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white transition-colors">
+                <i class="ph-duotone ph-play-circle text-lg"></i>
+                Usage
+            </a>
+            <a data-nav="build" data-navlink class="flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white transition-colors">
+                <i class="ph-duotone ph-package text-lg"></i>
+                Build
+            </a>
+            <a data-nav="contribute" data-navlink class="flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white transition-colors">
+                <i class="ph-duotone ph-git-pull-request text-lg"></i>
+                Contribute
+            </a>
+
+            <div class="pt-3 mt-3 border-t border-gray-200 dark:border-gray-700 space-y-1">
+                <div class="px-3 pb-1 text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
+                    Resources
+                </div>
+                <a href="https://github.com" target="_blank" rel="noopener noreferrer"
+                   class="w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white transition-colors">
+                    <i class="ph-duotone ph-book-open text-lg"></i>
+                    <span class="flex-1 text-left">Documentation</span>
+                    <span class="text-xs text-gray-400">↗</span>
+                </a>
+                <a href="https://discord.com" target="_blank" rel="noopener noreferrer"
+                   class="w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white transition-colors">
+                    <i class="ph-duotone ph-discord-logo text-lg"></i>
+                    <span class="flex-1 text-left">Discord Chat</span>
+                    <span class="text-xs text-gray-400">↗</span>
+                </a>
+                <a href="#support"
+                   class="w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white transition-colors">
+                    <i class="ph-duotone ph-lifebuoy text-lg"></i>
+                    <span class="flex-1 text-left">Contact Support</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Mobile close button -->
+        <button
+            class="md:hidden mt-3 self-end p-1 text-gray-500 dark:text-gray-400"
+            data-action="close-sidebar"
+            aria-label="Close menu"
+        >
+            <i class="ph ph-x text-xl"></i>
+        </button>
+    </nav>
+
+    <!-- Footer: developer credit -->
+    <div class="mt-auto border-t border-gray-200 dark:border-gray-700 pt-4 pb-4 px-4">
+        <a href="https://niquewrld.com" target="_blank" rel="noopener noreferrer"
+           class="flex items-center gap-2 px-1 py-1 rounded-md text-xs text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
+            <img src="https://www.niquewrld.com/logo.jpg" alt="Niquewrld" class="h-5 w-5 rounded-full flex-shrink-0" />
+            <span class="truncate">Developed by <span class="font-medium text-gray-700 dark:text-gray-200">Niquewrld</span></span>
+            <span class="ml-auto text-gray-400">↗</span>
+        </a>
+    </div>
+</aside>

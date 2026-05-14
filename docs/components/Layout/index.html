@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Layout — WhatsApp Pull Chats</title>
+    <script>
+        if (
+            localStorage.theme === 'dark' ||
+            (!('theme' in localStorage) &&
+                window.matchMedia('(prefers-color-scheme: dark)').matches)
+        ) {
+            document.documentElement.classList.add('dark');
+        }
+    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>tailwind.config = { darkMode: 'class' };</script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+</head>
+<body class="h-full">
+    <!-- Mirrors the React <Layout> component, composed from individual partials:
+         - ../Sidebar/sidebar.html
+         - ../Header/header.html
+         - ../Footer/footer.html -->
+    <div class="h-screen flex bg-gray-100 dark:bg-gray-900 overflow-hidden">
+
+        <!-- Mobile overlay -->
+        <div
+            id="sidebar-overlay"
+            class="fixed inset-0 bg-black/50 z-20 md:hidden hidden"
+        ></div>
+
+        <!-- Mobile sidebar host -->
+        <aside
+            id="sidebar-mobile"
+            class="fixed z-30 top-0 left-0 h-full transition-transform md:hidden -translate-x-full"
+        ></aside>
+
+        <!-- Desktop sidebar host -->
+        <aside id="sidebar-desktop" class="hidden md:block h-screen sticky top-0"></aside>
+
+        <!-- Content column -->
+        <div class="flex flex-col flex-1 h-screen overflow-y-auto md:p-2">
+
+            <!-- Mobile header host -->
+            <div id="header-host"></div>
+
+            <!-- Main content card -->
+            <main class="flex-1 flex flex-col bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+                <div class="flex-1 p-4 md:p-6 text-gray-800 dark:text-gray-100 space-y-4">
+                    <div class="flex items-center gap-3">
+                        <i class="ph-fill ph-layout text-3xl text-indigo-600"></i>
+                        <h2 class="text-2xl font-bold">Layout</h2>
+                    </div>
+                    <p class="text-gray-600 dark:text-gray-300">
+                        HTML version of the <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded">&lt;Layout&gt;</code>
+                        React component. Sidebar, Header, and Footer are now loaded from
+                        separate partial files.
+                    </p>
+
+                    <div class="grid sm:grid-cols-2 gap-4 pt-2">
+                        <a href="../../overview.html" class="block rounded-xl border border-gray-200 dark:border-gray-700 p-4 hover:border-indigo-500 transition">
+                            <div class="flex items-center gap-2 font-semibold"><i class="ph ph-info text-indigo-600"></i> Overview</div>
+                            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">What this project does.</p>
+                        </a>
+                        <a href="../../usage.html" class="block rounded-xl border border-gray-200 dark:border-gray-700 p-4 hover:border-indigo-500 transition">
+                            <div class="flex items-center gap-2 font-semibold"><i class="ph ph-play-circle text-indigo-600"></i> Usage</div>
+                            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Run the scripts and GUI.</p>
+                        </a>
+                        <a href="../../build.html" class="block rounded-xl border border-gray-200 dark:border-gray-700 p-4 hover:border-indigo-500 transition">
+                            <div class="flex items-center gap-2 font-semibold"><i class="ph ph-package text-indigo-600"></i> Build</div>
+                            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">EXE, APK, demo recording.</p>
+                        </a>
+                        <a href="../../contribute.html" class="block rounded-xl border border-gray-200 dark:border-gray-700 p-4 hover:border-indigo-500 transition">
+                            <div class="flex items-center gap-2 font-semibold"><i class="ph ph-git-pull-request text-indigo-600"></i> Contribute</div>
+                            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Setup and workflow.</p>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Footer host -->
+                <div id="footer-host"></div>
+            </main>
+        </div>
+    </div>
+
+    <script>
+        const NAV_HREFS = {
+            home: '../../../index.html',
+            overview: '../../overview.html',
+            usage: '../../usage.html',
+            build: '../../build.html',
+            contribute: '../../contribute.html',
+        };
+
+        function toggleSidebar(force) {
+            const sb = document.getElementById('sidebar-mobile');
+            const ov = document.getElementById('sidebar-overlay');
+            const open =
+                typeof force === 'boolean'
+                    ? force
+                    : sb.classList.contains('-translate-x-full');
+            sb.classList.toggle('-translate-x-full', !open);
+            sb.classList.toggle('translate-x-0', open);
+            ov.classList.toggle('hidden', !open);
+        }
+
+        function toggleTheme() {
+            const isDark = document.documentElement.classList.toggle('dark');
+            localStorage.theme = isDark ? 'dark' : 'light';
+        }
+
+        function wireSidebar(host) {
+            host.querySelectorAll('[data-nav]').forEach(a => {
+                a.href = NAV_HREFS[a.dataset.nav];
+            });
+            host.querySelectorAll('[data-action="close-sidebar"]').forEach(b =>
+                b.addEventListener('click', () => toggleSidebar(false))
+            );
+            host.querySelectorAll('[data-action="toggle-theme"]').forEach(b =>
+                b.addEventListener('click', toggleTheme)
+            );
+        }
+
+        function wireHeader(host) {
+            host.querySelectorAll('[data-action="open-sidebar"]').forEach(b =>
+                b.addEventListener('click', () => toggleSidebar(true))
+            );
+        }
+
+        async function loadPartial(url) {
+            const r = await fetch(url);
+            return r.text();
+        }
+
+        Promise.all([
+            loadPartial('../Sidebar/sidebar.html'),
+            loadPartial('../Header/header.html'),
+            loadPartial('../Footer/footer.html'),
+        ]).then(([sidebarHtml, headerHtml, footerHtml]) => {
+            const mobile = document.getElementById('sidebar-mobile');
+            const desktop = document.getElementById('sidebar-desktop');
+            mobile.innerHTML = sidebarHtml;
+            desktop.innerHTML = sidebarHtml;
+            wireSidebar(mobile);
+            wireSidebar(desktop);
+
+            const headerHost = document.getElementById('header-host');
+            headerHost.innerHTML = headerHtml;
+            wireHeader(headerHost);
+
+            document.getElementById('footer-host').innerHTML = footerHtml;
+        });
+
+        document
+            .getElementById('sidebar-overlay')
+            .addEventListener('click', () => toggleSidebar(false));
+    </script>
+</body>
+</html>

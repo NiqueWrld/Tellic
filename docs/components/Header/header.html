@@ -1,0 +1,20 @@
+<!-- Header partial — loaded by Layout via fetch().
+     Ported from the React <Header> component. Auth-dependent items dropped
+     (no user/logout); theme toggle kept for parity with the rest of the site. -->
+<header class="md:hidden px-4 py-4 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+        <a data-nav="home" class="flex items-center gap-2 md:hidden">
+            <img src="/assets/logo.svg" alt="" class="h-8 w-8" />
+            <span class="text-lg font-bold dark:text-white" data-app-name>WhatsApp Pull Chats</span>
+        </a>
+    </div>
+    <nav class="flex items-center gap-4">
+        <button
+            data-action="open-sidebar"
+            class="md:hidden p-1 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
+            aria-label="Open menu"
+        >
+            <i class="ph ph-list text-2xl"></i>
+        </button>
+    </nav>
+</header>

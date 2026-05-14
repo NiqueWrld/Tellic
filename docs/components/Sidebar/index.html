@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sidebar — WhatsApp Pull Chats</title>
+    <script>
+        if (
+            localStorage.theme === 'dark' ||
+            (!('theme' in localStorage) &&
+                window.matchMedia('(prefers-color-scheme: dark)').matches)
+        ) {
+            document.documentElement.classList.add('dark');
+        }
+    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>tailwind.config = { darkMode: 'class' };</script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+</head>
+<body class="h-full bg-gray-100 dark:bg-gray-900 p-4">
+    <div class="h-[90vh] flex">
+        <div id="sidebar-host" class="h-full"></div>
+        <div class="flex-1 p-4 text-gray-700 dark:text-gray-200">
+            <p>Standalone preview of the <strong>Sidebar</strong> component.</p>
+        </div>
+    </div>
+
+    <script>
+        const BASE = { home: '../../../index.html', overview: '../../overview.html', usage: '../../usage.html', build: '../../build.html', contribute: '../../contribute.html' };
+        fetch('sidebar.html').then(r => r.text()).then(html => {
+            const host = document.getElementById('sidebar-host');
+            host.innerHTML = html;
+            host.querySelectorAll('[data-nav]').forEach(a => a.href = BASE[a.dataset.nav]);
+            host.querySelectorAll('[data-action="toggle-theme"]').forEach(b => b.addEventListener('click', () => {
+                const isDark = document.documentElement.classList.toggle('dark');
+                localStorage.theme = isDark ? 'dark' : 'light';
+            }));
+        });
+    </script>
+</body>
+</html>

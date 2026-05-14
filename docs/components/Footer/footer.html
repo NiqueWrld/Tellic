@@ -1,0 +1,15 @@
+<!-- Footer partial — loaded by Layout via fetch() -->
+<footer class="bg-transparent px-6 py-4 flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4 text-sm text-gray-500 dark:text-gray-400">
+    <span>&copy; <span data-footer-year></span> <span data-app-name>WhatsApp Pull Chats</span>. All rights reserved.</span>
+    <span class="hidden sm:inline text-gray-300 dark:text-gray-600">·</span>
+    <a href="../../privacy.html" data-route="privacy" class="hover:text-gray-700 dark:hover:text-gray-200">
+        Privacy
+    </a>
+</footer>
+<script>
+    (function () {
+        document.querySelectorAll('[data-footer-year]').forEach(function (el) {
+            el.textContent = new Date().getFullYear();
+        });
+    })();
+</script>
