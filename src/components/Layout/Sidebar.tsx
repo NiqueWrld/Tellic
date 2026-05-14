@@ -1,5 +1,6 @@
 import type { Route } from './index';
 import { useTheme } from '../../context';
+import logoUrl from '../../assets/logo.svg';
 
 const APP_NAME = 'WhatsApp Pull Chats';
 
@@ -41,7 +42,7 @@ export function Sidebar({ route, onCloseMobile }: Props) {
         href={hrefFor('home')}
         className="flex items-center gap-3 mt-4 mb-4 px-4 hover:opacity-80 transition-opacity"
       >
-        <img src="/logo.svg" alt="" className="h-8 w-8 flex-shrink-0" />
+        <img src={logoUrl} alt="" className="h-8 w-8 flex-shrink-0" />
         <div className="flex flex-col leading-tight">
           <span className="text-lg font-semibold text-gray-900 dark:text-white">
             {APP_NAME}

@@ -186,3 +186,7 @@ messages.json
 !tsconfig*.json
 !*.config.json
 
+# Bundled Android Platform Tools (fetched by scripts/fetch-adb.ps1)
+resources/adb/*
+!resources/adb/README.md
+
