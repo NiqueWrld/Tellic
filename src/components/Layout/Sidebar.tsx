@@ -30,7 +30,7 @@ export function Sidebar({ route, onCloseMobile, onToggleTheme }: Props) {
         href={hrefFor('home')}
         className="flex items-center gap-3 mt-4 mb-6 px-4 hover:opacity-80 transition-opacity"
       >
-        <img src="/assets/logo.svg" alt="" className="h-8 w-8 flex-shrink-0" />
+        <img src="/logo.svg" alt="" className="h-8 w-8 flex-shrink-0" />
         <div className="flex flex-col leading-tight">
           <span className="text-lg font-semibold text-gray-900 dark:text-white">
             {APP_NAME}
