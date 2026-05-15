@@ -52,6 +52,26 @@ async function main() {
   const ico = await pngToIco(icoBuffers);
   await writeFile(path.join(OUT, 'icon.ico'), ico);
   console.log('  wrote assets/icon.ico');
+
+  // Microsoft Store / AppX tile images.
+  const APPX = path.join(OUT, 'appx');
+  await mkdir(APPX, { recursive: true });
+  const TILES = [
+    { name: 'StoreLogo.png', w: 50, h: 50 },
+    { name: 'Square44x44Logo.png', w: 44, h: 44 },
+    { name: 'Square150x150Logo.png', w: 150, h: 150 },
+    { name: 'Wide310x150Logo.png', w: 310, h: 150 },
+  ];
+  await Promise.all(
+    TILES.map(async ({ name, w, h }) => {
+      const buf = await sharp(svg, { density: 384 })
+        .resize(w, h, { fit: 'contain', background: { r: 70, g: 70, b: 70, alpha: 1 } })
+        .png()
+        .toBuffer();
+      await writeFile(path.join(APPX, name), buf);
+      console.log(`  wrote assets/appx/${name}`);
+    }),
+  );
 }
 
 main().catch((err) => {

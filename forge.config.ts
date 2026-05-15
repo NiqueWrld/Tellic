@@ -27,6 +27,8 @@ const config: ForgeConfig = {
       packageDisplayName: 'Tellic',
       packageName: 'NiqueWrld.Tellic',
       packageVersion: '1.0.0.0',
+      assets: 'assets/appx',
+      manifest: 'assets/appx/AppXManifest.xml',
     }),
     new MakerZIP({}, ['darwin']),
     new MakerRpm({
