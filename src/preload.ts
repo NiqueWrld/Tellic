@@ -1,7 +1,7 @@
 // See the Electron documentation for details on how to use preload scripts:
 // https://www.electronjs.org/docs/latest/tutorial/process-model#preload-scripts
 import { contextBridge, ipcRenderer } from 'electron';
-import type { AdbListResult } from './main';
+import type { AdbFetchResult, AdbListResult, AdbPathCheckResult } from './main';
 import type {
   Contact,
   ContactsProgress,
@@ -16,6 +16,10 @@ import type {
 const adb = {
   listDevices: (): Promise<AdbListResult> =>
     ipcRenderer.invoke('adb:list-devices'),
+  checkAdbInPath: (): Promise<AdbPathCheckResult> =>
+    ipcRenderer.invoke('adb:check-path'),
+  fetchAdb: (): Promise<AdbFetchResult> =>
+    ipcRenderer.invoke('adb:fetch'),
   pullContacts: (serial: string): Promise<ContactsResult> =>
     ipcRenderer.invoke('adb:pull-contacts', serial),
   onContactsProgress: (cb: (p: ContactsProgress) => void) => {

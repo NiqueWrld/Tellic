@@ -75,6 +75,21 @@ export type AdbListResult = {
   raw?: string;
 };
 
+export type AdbFetchResult = {
+  ok: boolean;
+  message: string;
+  path?: string;
+  error?: string;
+};
+
+export type AdbPathCheckResult = {
+  ok: boolean;
+  available: boolean;
+  message: string;
+  locations?: string[];
+  error?: string;
+};
+
 function parseAdbDevices(stdout: string): AdbDevice[] {
   const lines = stdout.split(/\r?\n/);
   const devices: AdbDevice[] = [];
@@ -127,6 +142,107 @@ function runAdbDevices(): Promise<AdbListResult> {
 }
 
 ipcMain.handle('adb:list-devices', async () => runAdbDevices());
+
+function runAdbPathCheck(): Promise<AdbPathCheckResult> {
+  return new Promise((resolve) => {
+    if (process.platform !== 'win32') {
+      resolve({
+        ok: true,
+        available: false,
+        message: 'CMD PATH check is only available on Windows.',
+      });
+      return;
+    }
+
+    execFile(
+      'cmd',
+      ['/c', 'where adb'],
+      { windowsHide: true, timeout: 10000 },
+      (err, stdout, stderr) => {
+        if (err) {
+          const details = (stderr || err.message || String(err)).trim();
+          resolve({
+            ok: true,
+            available: false,
+            message: 'ADB is not available in CMD PATH.',
+            error: details || undefined,
+          });
+          return;
+        }
+
+        const locations = stdout
+          .split(/\r?\n/)
+          .map((s) => s.trim())
+          .filter(Boolean);
+
+        resolve({
+          ok: true,
+          available: locations.length > 0,
+          message:
+            locations.length > 0
+              ? 'ADB is available in CMD PATH.'
+              : 'ADB is not available in CMD PATH.',
+          locations,
+        });
+      },
+    );
+  });
+}
+
+ipcMain.handle('adb:check-path', async () => runAdbPathCheck());
+
+function runFetchAdbScript(): Promise<AdbFetchResult> {
+  return new Promise(async (resolve) => {
+    if (process.platform !== 'win32') {
+      resolve({
+        ok: false,
+        message: 'ADB auto-download is currently supported on Windows only.',
+        error: 'Unsupported platform',
+      });
+      return;
+    }
+
+    const root = path.resolve(__dirname, '..', '..');
+    const scriptPath = path.join(root, 'scripts', 'fetch-adb.ps1');
+    const adbPath = path.join(root, 'resources', 'adb');
+
+    try {
+      await fs.access(scriptPath);
+    } catch {
+      resolve({
+        ok: false,
+        message: 'ADB fetch script is not available in this build.',
+        error: `Missing script: ${scriptPath}`,
+      });
+      return;
+    }
+
+    execFile(
+      'powershell',
+      ['-ExecutionPolicy', 'Bypass', '-File', scriptPath],
+      { windowsHide: true, timeout: 120000 },
+      (err, stdout, stderr) => {
+        if (err) {
+          const details = (stderr || err.message || String(err)).trim();
+          resolve({
+            ok: false,
+            message: 'Failed to download ADB. Check network and try again.',
+            error: details,
+          });
+          return;
+        }
+        const out = (stdout || '').trim();
+        resolve({
+          ok: true,
+          message: out || 'ADB downloaded successfully.',
+          path: adbPath,
+        });
+      },
+    );
+  });
+}
+
+ipcMain.handle('adb:fetch', async () => runFetchAdbScript());
 
 // ---------------------------------------------------------------------------
 // Contacts pull — ports Scripts/get_contacts.py to TypeScript / Electron

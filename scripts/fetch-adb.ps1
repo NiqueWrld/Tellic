@@ -24,6 +24,19 @@ if ((Test-Path $adbExe) -and -not $Force) {
   exit 0
 }
 
+# If adb is already resolvable from PATH, do not download again unless forced.
+if (-not $Force) {
+  try {
+    $adbCmd = Get-Command adb.exe -ErrorAction Stop
+    if ($adbCmd -and $adbCmd.Source) {
+      Write-Host "adb.exe already available on PATH at $($adbCmd.Source) (use -Force to re-download)."
+      exit 0
+    }
+  } catch {
+    # Not on PATH; continue with download.
+  }
+}
+
 New-Item -ItemType Directory -Force -Path $destDir | Out-Null
 $tmpDir = Join-Path ([System.IO.Path]::GetTempPath()) ("platform-tools-" + [guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Force -Path $tmpDir | Out-Null

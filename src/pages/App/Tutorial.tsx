@@ -1,6 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useDevice } from '../../context';
 import { useContacts, useMessages } from '../../hooks';
+
+const ADB_VIDEO_EMBED_URL = 'https://www.youtube.com/embed/W7nkxS9LMXs';
+const ADB_VIDEO_URL = 'https://youtu.be/W7nkxS9LMXs';
 
 export function TutorialPage() {
 	const { selectDevice } = useDevice();
@@ -19,6 +22,11 @@ export function TutorialPage() {
 	} = useMessages();
 	const [checkingDevices, setCheckingDevices] = useState(false);
 	const [deviceCheckMessage, setDeviceCheckMessage] = useState<string | null>(null);
+	const [downloadingAdb, setDownloadingAdb] = useState(false);
+	const [adbSetupMessage, setAdbSetupMessage] = useState<string | null>(null);
+	const [checkingAdbPath, setCheckingAdbPath] = useState(false);
+	const [adbPathAvailable, setAdbPathAvailable] = useState<boolean | null>(null);
+	const [adbPathMessage, setAdbPathMessage] = useState<string | null>(null);
 
 	const checkDevicesNow = async () => {
 		if (!window.adb) {
@@ -55,6 +63,67 @@ export function TutorialPage() {
 		}
 	};
 
+	const downloadAdbNow = async () => {
+		if (!window.adb) {
+			setAdbSetupMessage('ADB bridge is not available. Restart the app.');
+			return;
+		}
+		if (adbPathAvailable) {
+			setAdbSetupMessage('ADB is already available in CMD PATH. Download skipped.');
+			return;
+		}
+		setDownloadingAdb(true);
+		setAdbSetupMessage(null);
+		try {
+			const res = await window.adb.fetchAdb();
+			if (!res.ok) {
+				setAdbSetupMessage(res.error || res.message || 'Failed to download ADB.');
+				return;
+			}
+			setAdbSetupMessage(
+				res.path
+					? `ADB downloaded successfully to ${res.path}`
+					: res.message,
+			);
+		} catch (e) {
+			setAdbSetupMessage(e instanceof Error ? e.message : String(e));
+		} finally {
+			setDownloadingAdb(false);
+		}
+	};
+
+	const checkAdbPathNow = async () => {
+		if (!window.adb) {
+			setAdbPathAvailable(false);
+			setAdbPathMessage('ADB bridge is not available. Restart the app.');
+			return;
+		}
+		setCheckingAdbPath(true);
+		try {
+			const res = await window.adb.checkAdbInPath();
+			if (!res.ok) {
+				setAdbPathAvailable(false);
+				setAdbPathMessage(res.error || res.message || 'Failed to check CMD PATH.');
+				return;
+			}
+			setAdbPathAvailable(res.available);
+			if (res.available && res.locations && res.locations.length > 0) {
+				setAdbPathMessage(`${res.message} (${res.locations[0]})`);
+			} else {
+				setAdbPathMessage(res.message);
+			}
+		} catch (e) {
+			setAdbPathAvailable(false);
+			setAdbPathMessage(e instanceof Error ? e.message : String(e));
+		} finally {
+			setCheckingAdbPath(false);
+		}
+	};
+
+	useEffect(() => {
+		void checkAdbPathNow();
+	}, []);
+
 	return (
 		<div className="w-full space-y-6">
 			<div>
@@ -70,11 +139,11 @@ export function TutorialPage() {
 				<section>
 					<h2 className="font-semibold flex items-center gap-2 mb-2 text-gray-900 dark:text-white">
 						<i className="ph ph-play-circle text-indigo-600" />
-						Step 1. Enable USB Debugging (Video)
+						Step 1. What is ADB? (Video)
 					</h2>
 					<p className="text-gray-700 dark:text-gray-300 mb-3 text-sm">
-						Watch this first before connecting your device. It shows how to turn
-						on Developer Options and USB Debugging on Samsung phones.
+						Watch this first to understand what ADB is and why Tellic needs USB
+						Debugging + device authorization.
 					</p>
 					<div
 						className="relative w-full overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700"
@@ -82,8 +151,8 @@ export function TutorialPage() {
 					>
 						<iframe
 							className="absolute inset-0 w-full h-full"
-							src="https://www.youtube.com/embed/rv8HGw9y98U"
-							title="How to enable USB Debugging on Samsung"
+							src={ADB_VIDEO_EMBED_URL}
+							title="What is ADB on Android"
 							allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
 							referrerPolicy="strict-origin-when-cross-origin"
 							allowFullScreen
@@ -91,7 +160,7 @@ export function TutorialPage() {
 					</div>
 					<p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
 						<a
-							href="https://youtu.be/rv8HGw9y98U?si=WkQP3exrdokmz0DH"
+							href={ADB_VIDEO_URL}
 							target="_blank"
 							rel="noopener noreferrer"
 							className="text-indigo-600 dark:text-indigo-400 hover:underline"
@@ -103,8 +172,66 @@ export function TutorialPage() {
 
 				<section>
 					<h2 className="font-semibold flex items-center gap-2 mb-2 text-gray-900 dark:text-white">
+						<i className="ph ph-download-simple text-indigo-600" />
+						Step 2. Download ADB
+					</h2>
+					<div className="mt-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 p-4">
+						<h3 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+							<i className="ph ph-download-simple text-indigo-600" />
+							ADB setup (automatic)
+						</h3>
+						<p className="mt-2 text-sm text-gray-700 dark:text-gray-300">
+							Tellic auto-downloads and bundles ADB for you into
+							 <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">resources/adb</code>.
+							 You do not need to manually move platform-tools or edit your User PATH.
+						</p>
+						<div className="mt-3 inline-flex items-center gap-2 rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-2 bg-white dark:bg-gray-900">
+							<i
+								className={`ph-fill ${
+									adbPathAvailable
+										? 'ph-check-circle text-emerald-600 dark:text-emerald-400'
+										: 'ph-x-circle text-gray-400 dark:text-gray-500'
+								}`}
+							/>
+							<span className="text-xs text-gray-700 dark:text-gray-300">
+								{adbPathAvailable ? 'ADB is in CMD PATH' : 'ADB is not in CMD PATH'}
+							</span>
+						</div>
+						<div className="mt-3 flex items-center gap-2 flex-wrap">
+							<button
+								type="button"
+								onClick={checkAdbPathNow}
+								disabled={checkingAdbPath}
+								className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-60 text-sm font-medium text-gray-700 dark:text-gray-200 transition-colors"
+							>
+								<i className={`ph ${checkingAdbPath ? 'ph-spinner animate-spin' : 'ph-magnifying-glass'}`} />
+								{checkingAdbPath ? 'Checking PATH…' : 'Check CMD PATH'}
+							</button>
+							{!adbPathAvailable && (
+								<button
+									type="button"
+									onClick={downloadAdbNow}
+									disabled={downloadingAdb}
+									className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white text-sm font-medium transition-colors"
+								>
+									<i className={`ph ${downloadingAdb ? 'ph-spinner animate-spin' : 'ph-download-simple'}`} />
+									{downloadingAdb ? 'Downloading ADB…' : 'Download ADB now'}
+								</button>
+							)}
+						</div>
+						{adbPathMessage && (
+							<p className="mt-2 text-xs text-gray-500 dark:text-gray-400">{adbPathMessage}</p>
+						)}
+						{adbSetupMessage && (
+							<p className="mt-2 text-xs text-gray-500 dark:text-gray-400">{adbSetupMessage}</p>
+						)}
+					</div>
+				</section>
+
+				<section>
+					<h2 className="font-semibold flex items-center gap-2 mb-2 text-gray-900 dark:text-white">
 						<i className="ph ph-device-mobile text-indigo-600" />
-						Step 2. Connect your phone
+						Step 3. Connect your phone
 					</h2>
 					<p className="text-sm text-gray-700 dark:text-gray-300">
 						Go to the Devices page, connect your phone over USB, and accept the
@@ -155,7 +282,7 @@ export function TutorialPage() {
 				<section>
 					<h2 className="font-semibold flex items-center gap-2 mb-2 text-gray-900 dark:text-white">
 						<i className="ph ph-address-book text-indigo-600" />
-						Step 3. Pull contacts
+						Step 4. Pull contacts
 					</h2>
 					<p className="text-sm text-gray-700 dark:text-gray-300">
 						Open Contacts, then click Pull contacts. This creates or refreshes
@@ -199,7 +326,7 @@ export function TutorialPage() {
 				<section>
 					<h2 className="font-semibold flex items-center gap-2 mb-2 text-gray-900 dark:text-white">
 						<i className="ph ph-chats-circle text-indigo-600" />
-						Step 4. Export and sync messages
+						Step 5. Export and sync messages
 					</h2>
 					<p className="text-sm text-gray-700 dark:text-gray-300">
 						Open Messages and run Export all chats (first run) or Sync new
@@ -243,7 +370,7 @@ export function TutorialPage() {
 				<section>
 					<h2 className="font-semibold flex items-center gap-2 mb-2 text-gray-900 dark:text-white">
 						<i className="ph ph-arrows-counter-clockwise text-indigo-600" />
-						Step 5. Rebuild from exports (optional)
+						Step 6. Rebuild from exports (optional)
 					</h2>
 					<p className="text-sm text-gray-700 dark:text-gray-300">
 						If needed, use Rebuild from exports to regenerate messages from

@@ -7,11 +7,11 @@
   "private": true,
   "scripts": {
     "build:icons": "node scripts/build-icons.mjs",
-    "prestart": "npm run build:icons",
+    "prestart": "npm run fetch:adb && npm run build:icons",
     "start": "electron-forge start",
     "prepackage": "powershell -ExecutionPolicy Bypass -File scripts/fetch-adb.ps1",
     "package": "electron-forge package",
-    "premake": "npm run build:icons",
+    "premake": "npm run fetch:adb && npm run build:icons",
     "make": "electron-forge make",
     "publish": "electron-forge publish",
     "lint": "eslint --ext .ts,.tsx .",
