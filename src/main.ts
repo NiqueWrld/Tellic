@@ -268,6 +268,7 @@ function sleep(ms: number) {
 async function scrapeUnsavedNumbers(
   serial: string,
   pkg: string,
+  knownNumbers: Set<string>,
   emit: (p: ContactsProgress) => void,
   maxScrolls = 60,
   stallLimit = 3,
@@ -290,18 +291,29 @@ async function scrapeUnsavedNumbers(
       break;
     }
     const fresh = extractNumbersFromXml(xml);
-    const before = collected.size;
-    for (const n of fresh) collected.add(n);
-    const gained = collected.size - before;
+    let gained = 0;
+    let skippedExisting = 0;
+    for (const n of fresh) {
+      if (knownNumbers.has(n)) {
+        skippedExisting++;
+        continue;
+      }
+      if (!collected.has(n)) {
+        collected.add(n);
+        gained++;
+      }
+    }
     emit({
       phase: 'ui-scroll',
-      message: `scroll ${i + 1}: +${gained} new (total ${collected.size})`,
+      message: `scroll ${i + 1}: +${gained} new, ${skippedExisting} existing skipped (total ${collected.size})`,
       scroll: i + 1,
       totalScrolls: maxScrolls,
       unsaved: collected.size,
     });
     if (gained === 0) {
-      stalls++;
+      // Keep scanning when this page only contains already-known contacts.
+      if (skippedExisting === 0) stalls++;
+      else stalls = 0;
       if (stalls >= stallLimit) break;
     } else {
       stalls = 0;
@@ -337,6 +349,10 @@ async function pullContacts(
   try {
     emit({ phase: 'start', message: 'Querying saved WhatsApp contacts…' });
     const saved = await getSavedWhatsAppContacts(serial);
+    const knownNumbers = new Set<string>();
+    for (const c of saved) {
+      for (const n of c.numbers) knownNumbers.add(normalizeNumber(n));
+    }
     emit({
       phase: 'saved',
       message: `Found ${saved.length} saved WhatsApp contacts.`,
@@ -346,7 +362,7 @@ async function pullContacts(
     const pkg = await detectWhatsAppPackage(serial);
     let unsaved = new Set<string>();
     if (pkg) {
-      unsaved = await scrapeUnsavedNumbers(serial, pkg, emit);
+      unsaved = await scrapeUnsavedNumbers(serial, pkg, knownNumbers, emit);
     } else {
       emit({ phase: 'ui-start', message: 'WhatsApp not installed — skipping UI scrape.' });
     }

@@ -49,31 +49,40 @@ export function UsagePage() {
         <div>
           <h4 className="font-semibold flex items-center gap-2 mb-2">
             <i className="ph ph-address-book text-indigo-600" />
-            1. Get Contacts
+            1. Connect a device
           </h4>
-          <pre className="bg-gray-900 text-gray-100 rounded-lg p-3 text-sm overflow-x-auto">
-            <code>python Scripts/get_contacts.py</code>
-          </pre>
           <p className="text-gray-700 dark:text-gray-300 mt-2">
-            Creates{' '}
+            Open the in-app Tutorial or Devices page, then connect your phone
+            with USB Debugging enabled. Confirm the authorization prompt on the phone.
+          </p>
+        </div>
+
+        <div>
+          <h4 className="font-semibold flex items-center gap-2 mb-2">
+            <i className="ph ph-address-book text-indigo-600" />
+            2. Pull Contacts
+          </h4>
+          <p className="text-gray-700 dark:text-gray-300 mt-2">
+            Use the Contacts page (or Step 3 in Tutorial) and click{' '}
+            <strong>Pull contacts</strong>.
+          </p>
+          <p className="text-gray-700 dark:text-gray-300 mt-2">
+            This updates{' '}
             <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">
               contacts.json
-            </code>
-            .
+            </code>{' '}
+            in your local app data folder.
           </p>
         </div>
 
         <div>
           <h4 className="font-semibold flex items-center gap-2 mb-2">
             <i className="ph ph-chat-text text-indigo-600" />
-            2. Export &amp; Parse Messages
+            3. Export &amp; Sync Messages
           </h4>
-          <pre className="bg-gray-900 text-gray-100 rounded-lg p-3 text-sm overflow-x-auto">
-            <code>python Scripts/get_messages.py</code>
-          </pre>
           <ul className="list-disc list-inside text-gray-700 dark:text-gray-300 mt-2 space-y-1">
-            <li>Opens chats by number (wa.me intent)</li>
-            <li>Triggers WhatsApp export flow</li>
+            <li>Open the Messages page (or Step 4 in Tutorial)</li>
+            <li>Click Export/Sync messages</li>
             <li>Uses the Android helper app to save exported text files</li>
             <li>Parses transcripts into structured JSON</li>
             <li>
@@ -87,14 +96,15 @@ export function UsagePage() {
 
         <div>
           <h4 className="font-semibold flex items-center gap-2 mb-2">
-            <i className="ph ph-app-window text-indigo-600" />
-            3. Desktop Runner
+            <i className="ph ph-arrows-counter-clockwise text-indigo-600" />
+            4. Rebuild from exports (optional)
           </h4>
-          <pre className="bg-gray-900 text-gray-100 rounded-lg p-3 text-sm overflow-x-auto">
-            <code>python app.py</code>
-          </pre>
           <p className="text-gray-700 dark:text-gray-300 mt-2">
-            Buttons: Run Contacts, Run Messages, Run All, Copy JSON.
+            Use <strong>Rebuild from exports</strong> to regenerate
+            <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded ml-1">
+              messages.json
+            </code>{' '}
+            from existing exported chat text files.
           </p>
         </div>
       </article>

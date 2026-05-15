@@ -9,20 +9,49 @@ export function BuildPage() {
       <article className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 space-y-6">
         <div>
           <h4 className="font-semibold flex items-center gap-2 mb-2">
-            <i className="ph ph-windows-logo text-indigo-600" />
-            Windows EXE
+            <i className="ph ph-terminal text-indigo-600" />
+            Development Run
           </h4>
           <pre className="bg-gray-900 text-gray-100 rounded-lg p-3 text-sm overflow-x-auto">
             <code>
-              python -m PyInstaller --noconfirm --clean --windowed --name
-              WhatsAppExportRunner --add-data "Scripts;Scripts" app.py
+              npm install
+              {'\n'}npm start
             </code>
           </pre>
           <p className="text-gray-700 dark:text-gray-300 mt-2">
-            Output:{' '}
-            <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">
-              dist/WhatsAppExportRunner/WhatsAppExportRunner.exe
+            Starts the Electron app with Vite for local development.
+          </p>
+        </div>
+
+        <div>
+          <h4 className="font-semibold flex items-center gap-2 mb-2">
+            <i className="ph ph-windows-logo text-indigo-600" />
+            Desktop Package (Electron Forge)
+          </h4>
+          <pre className="bg-gray-900 text-gray-100 rounded-lg p-3 text-sm overflow-x-auto">
+            <code>
+              npm run make
             </code>
+          </pre>
+          <p className="text-gray-700 dark:text-gray-300 mt-2">
+            Output goes to{' '}
+            <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">
+              out/
+            </code>
+            . Use the generated installer/package for distribution.
+          </p>
+        </div>
+
+        <div>
+          <h4 className="font-semibold flex items-center gap-2 mb-2">
+            <i className="ph ph-storefront text-indigo-600" />
+            Microsoft Store Package (AppX)
+          </h4>
+          <pre className="bg-gray-900 text-gray-100 rounded-lg p-3 text-sm overflow-x-auto">
+            <code>npm run make -- --targets=@electron-forge/maker-appx --platform=win32 --arch=x64</code>
+          </pre>
+          <p className="text-gray-700 dark:text-gray-300 mt-2">
+            Generates AppX artifacts for Partner Center submission.
           </p>
         </div>
 

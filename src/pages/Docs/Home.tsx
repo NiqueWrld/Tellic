@@ -16,13 +16,13 @@ const CARDS: Card[] = [
     href: '#/usage',
     icon: 'ph-fill ph-play-circle',
     title: 'Usage',
-    desc: 'Run contacts, export messages, and use the desktop runner.',
+    desc: 'Use the in-app tutorial, pull contacts, and sync messages.',
   },
   {
     href: '#/build',
     icon: 'ph-fill ph-package',
     title: 'Build',
-    desc: 'Build the Windows EXE, Android APK, and record demos.',
+    desc: 'Run, package, and ship the Electron desktop app.',
   },
   {
     href: '#/contribute',
@@ -38,10 +38,10 @@ export function HomePage() {
       <section className="text-center space-y-3 py-6">
         <h2 className="text-3xl font-bold flex items-center justify-center gap-2">
           <i className="ph-fill ph-chats-circle text-indigo-600" />
-          WhatsApp Pull Chats
+          Tellic
         </h2>
         <p className="text-gray-600 dark:text-gray-300">
-          Export WhatsApp Business chats into structured JSON.
+          Electron desktop app for exporting WhatsApp chats into structured JSON.
         </p>
       </section>
 

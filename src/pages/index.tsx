@@ -1,6 +1,7 @@
 export { HomePage } from './App/Home';
 export { ContactsPage } from './App/Contacts';
 export { MessagesPage } from './App/Messages';
+export { TutorialPage } from './App/Tutorial';
 export { HomePage as DocsHomePage } from './Docs/Home';
 export { OverviewPage } from './Docs/Overview';
 export { UsagePage } from './Docs/Usage';

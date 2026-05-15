@@ -15,21 +15,33 @@ export function ContributePage() {
           <ul className="list-disc list-inside text-gray-700 dark:text-gray-300 space-y-1">
             <li>
               <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">
-                Scripts/get_contacts.py
+                src/main.ts
               </code>{' '}
-              — pulls contact list
+              — Electron main process + ADB automation
             </li>
             <li>
               <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">
-                Scripts/get_messages.py
+                src/preload.ts
               </code>{' '}
-              — exports/parses chats and writes JSON
+              — secure IPC bridge exposed to renderer
             </li>
             <li>
               <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">
-                app.py
+                src/pages/App/
               </code>{' '}
-              — Tkinter launcher
+              — app UI pages (Tutorial, Devices, Contacts, Messages)
+            </li>
+            <li>
+              <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">
+                src/hooks/
+              </code>{' '}
+              — contacts/messages state and IPC actions
+            </li>
+            <li>
+              <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">
+                scripts/
+              </code>{' '}
+              — icon and packaging helpers
             </li>
             <li>
               <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">
@@ -46,14 +58,8 @@ export function ContributePage() {
             Local Setup
           </h4>
           <ul className="list-disc list-inside text-gray-700 dark:text-gray-300 space-y-1">
-            <li>Python 3.10+</li>
-            <li>
-              Install dependencies (
-              <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">
-                uiautomator2
-              </code>
-              , etc.)
-            </li>
+            <li>Node.js 20+ and npm</li>
+            <li>Install dependencies with <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">npm install</code></li>
             <li>ADB installed and on PATH</li>
             <li>Android device with USB debugging enabled</li>
           </ul>
@@ -67,13 +73,9 @@ export function ContributePage() {
           <ol className="list-decimal list-inside text-gray-700 dark:text-gray-300 space-y-1">
             <li>Create a feature branch</li>
             <li>Keep changes focused</li>
-            <li>
-              Validate with{' '}
-              <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">
-                python -m py_compile app.py
-              </code>
-            </li>
-            <li>Rebuild EXE if GUI changed</li>
+            <li>Run and verify with <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">npm start</code></li>
+            <li>Lint with <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">npm run lint</code></li>
+            <li>Package with <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">npm run make</code> when release-facing changes are made</li>
             <li>Open PR with what changed, how to test, known limitations</li>
           </ol>
         </div>

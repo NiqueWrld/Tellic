@@ -8,6 +8,7 @@ type Section = 'app' | 'docs';
 type NavItem = { key: Route; label: string; icon: string; section: Section };
 
 const NAV: NavItem[] = [
+  { key: 'tutorial', label: 'Tutorial', icon: 'ph-play-circle', section: 'app' },
   { key: 'home', label: 'Devices', icon: 'ph-device-mobile', section: 'app' },
   { key: 'contacts', label: 'Contacts', icon: 'ph-address-book', section: 'app' },
   { key: 'messages', label: 'Messages', icon: 'ph-chats-circle', section: 'app' },
@@ -36,7 +37,7 @@ export function Sidebar({ route, onCloseMobile }: Props) {
   const appNav = NAV.filter((n) => n.section === 'app');
   const docsNav = NAV.filter((n) => n.section === 'docs');
   return (
-    <aside className="w-64 bg-white dark:bg-gray-900 lg:bg-transparent lg:dark:bg-transparent h-full flex-shrink-0 flex flex-col overflow-hidden">
+    <aside className="w-64 bg-white dark:bg-gray-900 md:bg-transparent md:dark:bg-transparent h-full flex-shrink-0 flex flex-col overflow-hidden">
       {/* Logo + app name */}
       <a
         href={hrefFor('home')}

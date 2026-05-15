@@ -6,6 +6,7 @@ import {
   HomePage,
   ContactsPage,
   MessagesPage,
+  TutorialPage,
   DocsHomePage,
   OverviewPage,
   UsagePage,
@@ -18,6 +19,7 @@ export type Route =
   | 'home'
   | 'contacts'
   | 'messages'
+  | 'tutorial'
   | 'overview'
   | 'usage'
   | 'build'
@@ -28,6 +30,7 @@ const ROUTES: Record<Route, string> = {
   home: 'Devices',
   contacts: 'Contacts',
   messages: 'Messages',
+  tutorial: 'Tutorial',
   overview: 'Project Overview',
   usage: 'Usage',
   build: 'Build',
@@ -37,8 +40,8 @@ const ROUTES: Record<Route, string> = {
 
 function routeFromHash(): Route {
   const h = (location.hash || '').replace(/^#\/?/, '');
-  const key = (h.split('/')[0] || 'home') as Route;
-  return ROUTES[key] ? key : 'home';
+  const key = (h.split('/')[0] || 'tutorial') as Route;
+  return ROUTES[key] ? key : 'tutorial';
 }
 
 export function Layout() {
@@ -46,7 +49,7 @@ export function Layout() {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
-    if (!location.hash) location.hash = '#/';
+    if (!location.hash) location.hash = '#/tutorial';
     const onHash = () => {
       setRoute(routeFromHash());
       setMobileOpen(false);
@@ -107,6 +110,8 @@ function PageRouter({ route }: { route: Route }) {
       return <ContactsPage />;
     case 'messages':
       return <MessagesPage />;
+    case 'tutorial':
+      return <TutorialPage />;
     case 'overview':
       return <OverviewPage />;
     case 'usage':
