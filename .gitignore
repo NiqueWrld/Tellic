@@ -161,6 +161,11 @@ desktop.ini
 .env.*
 !.env.example
 
+# Code-signing certificates (private keys — never commit)
+signing/
+*.pfx
+*.pvk
+
 # ─────────────────────────────────────────────────────────────
 # Project-specific
 # ─────────────────────────────────────────────────────────────

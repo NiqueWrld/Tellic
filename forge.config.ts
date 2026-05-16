@@ -18,10 +18,17 @@ const config: ForgeConfig = {
   makers: [
     new MakerSquirrel({
       setupIcon: 'assets/icon.ico',
+      // Sign the Setup.exe so Windows shows "NiqueWrld" as the publisher
+      // instead of "Unknown Publisher" in the UAC / SmartScreen dialog.
+      certificateFile: 'signing/dev-cert.pfx',
+      certificatePassword: 'tellic-dev',
     }),
     new MakerAppX({
-      // Microsoft Store identity values (from Partner Center).
-      publisher: 'CN=3C3B9E40-19CE-4CF9-8559-FDED2BE523C2',
+      // Sideload identity. NOTE: Microsoft Store submission requires the
+      // Publisher CN to match the GUID assigned in Partner Center
+      // (e.g. 'CN=3C3B9E40-19CE-4CF9-8559-FDED2BE523C2'); swap it back
+      // before publishing to the Store.
+      publisher: 'CN=NiqueWrld',
       identityName: 'NiqueWrld.Tellic',
       publisherDisplayName: 'NiqueWrld',
       packageDisplayName: 'Tellic',
@@ -29,6 +36,11 @@ const config: ForgeConfig = {
       packageVersion: '1.0.0.0',
       assets: 'assets/appx',
       manifest: 'assets/appx/AppXManifest.xml',
+      // Pre-generated self-signed cert (Subject matches `publisher` above).
+      // Kept outside `assets/appx` so the private key is NOT packed into
+      // the .appx. Skips the interactive makecert.exe password dialog.
+      devCert: 'signing/dev-cert.pfx',
+      certPass: 'tellic-dev',
     }),
     new MakerZIP({}, ['darwin']),
     new MakerRpm({
