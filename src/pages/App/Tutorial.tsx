@@ -4,6 +4,8 @@ import { useContacts, useMessages } from '../../hooks';
 
 const ADB_VIDEO_EMBED_URL = 'https://www.youtube.com/embed/W7nkxS9LMXs';
 const ADB_VIDEO_URL = 'https://youtu.be/W7nkxS9LMXs';
+const WASAVER_RELEASE_URL =
+	'https://github.com/NiqueWrld/Tellic/releases/tag/app-v1.0.0';
 
 export function TutorialPage() {
 	const { selectDevice } = useDevice();
@@ -27,6 +29,9 @@ export function TutorialPage() {
 	const [checkingAdbPath, setCheckingAdbPath] = useState(false);
 	const [adbPathAvailable, setAdbPathAvailable] = useState<boolean | null>(null);
 	const [adbPathMessage, setAdbPathMessage] = useState<string | null>(null);
+	const [checkingWaSaver, setCheckingWaSaver] = useState(false);
+	const [waSaverInstalled, setWaSaverInstalled] = useState<boolean | null>(null);
+	const [waSaverMessage, setWaSaverMessage] = useState<string | null>(null);
 
 	const checkDevicesNow = async () => {
 		if (!window.adb) {
@@ -117,6 +122,34 @@ export function TutorialPage() {
 			setAdbPathMessage(e instanceof Error ? e.message : String(e));
 		} finally {
 			setCheckingAdbPath(false);
+		}
+	};
+
+	const checkWaSaverNow = async () => {
+		if (!window.adb) {
+			setWaSaverMessage('ADB bridge is not available. Restart the app.');
+			return;
+		}
+		if (!selected) {
+			setWaSaverMessage('Select a device first (Step 3).');
+			return;
+		}
+		setCheckingWaSaver(true);
+		setWaSaverMessage(null);
+		try {
+			const res = await window.adb.checkWaSaverInstalled(selected.serial);
+			if (!res.ok) {
+				setWaSaverMessage(res.error || res.message || 'Failed to check WaSaver.');
+				setWaSaverInstalled(false);
+				return;
+			}
+			setWaSaverInstalled(res.installed);
+			setWaSaverMessage(res.message);
+		} catch (e) {
+			setWaSaverMessage(e instanceof Error ? e.message : String(e));
+			setWaSaverInstalled(false);
+		} finally {
+			setCheckingWaSaver(false);
 		}
 	};
 
@@ -281,8 +314,71 @@ export function TutorialPage() {
 
 				<section>
 					<h2 className="font-semibold flex items-center gap-2 mb-2 text-gray-900 dark:text-white">
+						<i className="ph ph-package text-indigo-600" />
+						Step 4. Install WaSaver
+					</h2>
+					<p className="text-sm text-gray-700 dark:text-gray-300">
+						Install the helper APK used during WhatsApp export capture.
+					</p>
+					<div className="mt-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 p-4">
+						<div className="inline-flex items-center gap-2 rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-2 bg-white dark:bg-gray-900 mb-3">
+							<i
+								className={`ph-fill ${
+									waSaverInstalled
+										? 'ph-check-circle text-emerald-600 dark:text-emerald-400'
+										: 'ph-x-circle text-gray-400 dark:text-gray-500'
+								}`}
+							/>
+							<span className="text-xs text-gray-700 dark:text-gray-300">
+								{waSaverInstalled ? 'WaSaver is installed' : 'WaSaver status unknown'}
+							</span>
+						</div>
+						<div className="mt-3 flex items-center gap-2 flex-wrap">
+							<a
+								href={WASAVER_RELEASE_URL}
+								target="_blank"
+								rel="noopener noreferrer"
+								className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-200 transition-colors"
+							>
+								<i className="ph ph-arrow-up-right" />
+								Open WaSaver GitHub release
+							</a>
+							<button
+								type="button"
+								onClick={checkWaSaverNow}
+								disabled={checkingWaSaver || !selected}
+								className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-60 text-sm font-medium text-gray-700 dark:text-gray-200 transition-colors"
+							>
+								<i className={`ph ${checkingWaSaver ? 'ph-spinner animate-spin' : 'ph-magnifying-glass'}`} />
+								{checkingWaSaver ? 'Checking…' : 'Check installation'}
+							</button>
+						</div>
+						<p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+							Download the APK asset from the GitHub release page. If no APK asset is published yet, use the local APK command below.
+						</p>
+						<pre className="mt-2 bg-gray-900 text-gray-100 rounded-lg p-3 text-sm overflow-x-auto">
+							<code>adb install -r WaSaver/apk/wasaver.apk</code>
+						</pre>
+						<p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+							If install is blocked, allow USB install prompts on your phone and run the command again.
+						</p>
+						{waSaverMessage && (
+							<p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+								{waSaverMessage}
+							</p>
+						)}
+						{!selected && (
+							<p className="mt-2 text-xs text-amber-700 dark:text-amber-300">
+								Connect and authorize a device first (Step 3).
+							</p>
+						)}
+					</div>
+				</section>
+
+				<section>
+					<h2 className="font-semibold flex items-center gap-2 mb-2 text-gray-900 dark:text-white">
 						<i className="ph ph-address-book text-indigo-600" />
-						Step 4. Pull contacts
+						Step 5. Pull contacts
 					</h2>
 					<p className="text-sm text-gray-700 dark:text-gray-300">
 						Open Contacts, then click Pull contacts. This creates or refreshes
@@ -326,7 +422,7 @@ export function TutorialPage() {
 				<section>
 					<h2 className="font-semibold flex items-center gap-2 mb-2 text-gray-900 dark:text-white">
 						<i className="ph ph-chats-circle text-indigo-600" />
-						Step 5. Export and sync messages
+						Step 6. Export and sync messages
 					</h2>
 					<p className="text-sm text-gray-700 dark:text-gray-300">
 						Open Messages and run Export all chats (first run) or Sync new
@@ -370,7 +466,7 @@ export function TutorialPage() {
 				<section>
 					<h2 className="font-semibold flex items-center gap-2 mb-2 text-gray-900 dark:text-white">
 						<i className="ph ph-arrows-counter-clockwise text-indigo-600" />
-						Step 6. Rebuild from exports (optional)
+						Step 7. Rebuild from exports (optional)
 					</h2>
 					<p className="text-sm text-gray-700 dark:text-gray-300">
 						If needed, use Rebuild from exports to regenerate messages from

@@ -1,7 +1,7 @@
 // See the Electron documentation for details on how to use preload scripts:
 // https://www.electronjs.org/docs/latest/tutorial/process-model#preload-scripts
 import { contextBridge, ipcRenderer } from 'electron';
-import type { AdbFetchResult, AdbListResult, AdbPathCheckResult } from './main';
+import type { AdbCheckPackageResult, AdbFetchResult, AdbListResult, AdbPathCheckResult } from './main';
 import type {
   Contact,
   ContactsProgress,
@@ -52,6 +52,8 @@ const adb = {
     path?: string;
     error?: string;
   }> => ipcRenderer.invoke('messages:load'),
+  checkWaSaverInstalled: (serial: string): Promise<AdbCheckPackageResult> =>
+    ipcRenderer.invoke('adb:check-wasaver', serial),
 };
 
 contextBridge.exposeInMainWorld('adb', adb);

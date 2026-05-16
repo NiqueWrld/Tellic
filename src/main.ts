@@ -90,6 +90,13 @@ export type AdbPathCheckResult = {
   error?: string;
 };
 
+export type AdbCheckPackageResult = {
+  ok: boolean;
+  installed: boolean;
+  message: string;
+  error?: string;
+};
+
 function parseAdbDevices(stdout: string): AdbDevice[] {
   const lines = stdout.split(/\r?\n/);
   const devices: AdbDevice[] = [];
@@ -243,6 +250,43 @@ function runFetchAdbScript(): Promise<AdbFetchResult> {
 }
 
 ipcMain.handle('adb:fetch', async () => runFetchAdbScript());
+
+function runCheckWaSaverInstalled(serial: string): Promise<AdbCheckPackageResult> {
+  return new Promise((resolve) => {
+    execFile(
+      getAdbPath(),
+      ['-s', serial, 'shell', 'pm', 'list', 'packages'],
+      { windowsHide: true, timeout: 10000, maxBuffer: 8 * 1024 * 1024 },
+      (err, stdout, stderr) => {
+        if (err) {
+          resolve({
+            ok: false,
+            installed: false,
+            message: 'Failed to check package list.',
+            error: (stderr || err.message || String(err)).trim(),
+          });
+          return;
+        }
+        const packages = (stdout || '').split('\n').map((p) => p.trim()).filter(Boolean);
+        const wasaverPkgs = packages.filter(
+          (p) => p.includes('wasaver') || p.includes('com.niquewrld'),
+        );
+        const installed = wasaverPkgs.length > 0;
+        resolve({
+          ok: true,
+          installed,
+          message: installed
+            ? `WaSaver is installed (${wasaverPkgs[0]})`
+            : 'WaSaver is not installed on this device.',
+        });
+      },
+    );
+  });
+}
+
+ipcMain.handle('adb:check-wasaver', (event, serial: string) =>
+  runCheckWaSaverInstalled(serial),
+);
 
 // ---------------------------------------------------------------------------
 // Contacts pull — ports Scripts/get_contacts.py to TypeScript / Electron
